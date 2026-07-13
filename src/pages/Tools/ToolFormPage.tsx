@@ -124,7 +124,10 @@ export default function ToolFormPage() {
         auth_type: authType,
         auth_config:
           authType === 'api_key'
-            ? { key_name: keyName }
+            ? {
+                key_name: keyName,
+                ...(bearerToken.trim() ? { api_key_value: bearerToken } : {}),
+              }
             : authType === 'bearer'
               ? { token: bearerToken }
               : undefined,
@@ -223,19 +226,39 @@ export default function ToolFormPage() {
             />
           </div>
           {authType === 'api_key' && (
-            <Input
-              label="Key 名称"
-              size="md"
-              fullWidth
-              wrapperClassName="tool-form__gap"
-              placeholder="如 X-API-Key"
-              helperText="HTTP Header 中传递 API Key 的字段名"
-              value={keyName}
-              onChange={(e) => {
-                setKeyName(e.target.value);
-                markDirty();
-              }}
-            />
+            <>
+              <Input
+                label="Key 名称"
+                size="md"
+                fullWidth
+                wrapperClassName="tool-form__gap"
+                placeholder="如 X-API-Key"
+                helperText="HTTP Header 中传递 API Key 的字段名"
+                value={keyName}
+                onChange={(e) => {
+                  setKeyName(e.target.value);
+                  markDirty();
+                }}
+              />
+              <Input
+                label="API Key"
+                size="md"
+                fullWidth
+                type={showToken ? 'text' : 'password'}
+                wrapperClassName="tool-form__gap"
+                placeholder="输入 API Key"
+                value={bearerToken}
+                rightIcon={
+                  <button type="button" className="tool-form__eye" onClick={() => setShowToken((v) => !v)}>
+                    {showToken ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                }
+                onChange={(e) => {
+                  setBearerToken(e.target.value);
+                  markDirty();
+                }}
+              />
+            </>
           )}
           {authType === 'bearer' && (
             <Input

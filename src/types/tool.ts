@@ -18,6 +18,8 @@ export interface CreateToolRequest {
   auth_config?: {
     key_name?: string;
     token?: string;
+    /** API Key 明文（传输前会加密为 enc:v1:...） */
+    api_key_value?: string;
   };
   parameters: ToolParameter[];
   swagger_source?: string;

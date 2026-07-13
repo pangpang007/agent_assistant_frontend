@@ -4,10 +4,32 @@ function trimTrailingSlash(url: string): string {
   return url.replace(/\/+$/, '');
 }
 
+/**
+ * Ensure BACKEND_URL is an absolute origin.
+ * Values like `api.soupcircle.xyz` (no scheme) are treated as relative paths by axios
+ * and become `https://www.soupcircle.xyz/api.soupcircle.xyz/...`.
+ */
+function normalizeBackendUrl(raw: string): string {
+  let url = trimTrailingSlash(raw.trim());
+
+  if (!/^https?:\/\//i.test(url)) {
+    if (/^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(url)) {
+      url = `http://${url}`;
+    } else {
+      url = `https://${url}`;
+    }
+  }
+
+  // Allow BACKEND_URL to include /api suffix; API base adds it once
+  url = url.replace(/\/api$/i, '');
+
+  return trimTrailingSlash(url);
+}
+
 /** Backend origin from Vercel `BACKEND_URL`, or local default. */
 export function getBackendUrl(): string {
   const fromEnv = import.meta.env.BACKEND_URL?.trim();
-  if (fromEnv) return trimTrailingSlash(fromEnv);
+  if (fromEnv) return normalizeBackendUrl(fromEnv);
   return LOCAL_BACKEND;
 }
 

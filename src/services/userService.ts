@@ -1,4 +1,5 @@
 import http from '@/lib/axios';
+import { encryptSensitive } from '@/lib/transportCrypto';
 import type { UpdatePasswordRequest, UpdateProfileRequest, UserInfo } from '@/types';
 
 export const userService = {
@@ -7,8 +8,17 @@ export const userService = {
   updateProfile: (data: UpdateProfileRequest): Promise<UserInfo> =>
     http.put('/user/profile', data),
 
-  updatePassword: (data: UpdatePasswordRequest): Promise<{ message: string }> =>
-    http.put('/user/password', data),
+  updatePassword: async (data: UpdatePasswordRequest): Promise<{ message: string }> => {
+    const oldPassword = data.old_password ?? data.current_password;
+    if (!oldPassword) {
+      throw new Error('缺少当前密码');
+    }
+
+    return http.post('/users/profile/change-password', {
+      old_password: await encryptSensitive(oldPassword),
+      new_password: await encryptSensitive(data.new_password),
+    });
+  },
 
   deleteAccount: (): Promise<void> => http.delete('/user/account'),
 };

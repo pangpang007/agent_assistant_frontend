@@ -1,4 +1,5 @@
 import http from '@/lib/axios';
+import { encryptOptional } from '@/lib/transportCrypto';
 import type {
   CreateSupplierRequest,
   EnabledModelsResponse,
@@ -9,14 +10,22 @@ import type {
   UsageResponse,
 } from '@/types';
 
+async function withEncryptedApiKey<T extends { api_key?: string }>(data: T): Promise<T> {
+  if (!data.api_key) return data;
+  return {
+    ...data,
+    api_key: await encryptOptional(data.api_key),
+  };
+}
+
 export const modelService = {
   getSuppliers: (): Promise<SupplierListResponse> => http.get('/models/providers'),
 
-  createSupplier: (data: CreateSupplierRequest): Promise<ModelSupplier> =>
-    http.post('/models/providers', data),
+  createSupplier: async (data: CreateSupplierRequest): Promise<ModelSupplier> =>
+    http.post('/models/providers', await withEncryptedApiKey(data)),
 
-  updateSupplier: (id: string, data: UpdateSupplierRequest): Promise<ModelSupplier> =>
-    http.put(`/models/providers/${id}`, data),
+  updateSupplier: async (id: string, data: UpdateSupplierRequest): Promise<ModelSupplier> =>
+    http.put(`/models/providers/${id}`, await withEncryptedApiKey(data)),
 
   deleteSupplier: (id: string): Promise<void> => http.delete(`/models/providers/${id}`),
 

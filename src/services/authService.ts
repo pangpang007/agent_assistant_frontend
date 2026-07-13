@@ -1,6 +1,7 @@
 import axios from 'axios';
 import http from '@/lib/axios';
 import { getApiBaseUrl } from '@/lib/backendConfig';
+import { encryptSensitive } from '@/lib/transportCrypto';
 import type {
   LoginRequest,
   LoginResponse,
@@ -12,10 +13,17 @@ import type {
 const BASE_URL = getApiBaseUrl();
 
 export const authService = {
-  login: (data: LoginRequest): Promise<LoginResponse> => http.post('/auth/login', data),
+  login: async (data: LoginRequest): Promise<LoginResponse> =>
+    http.post('/auth/login', {
+      ...data,
+      password: await encryptSensitive(data.password),
+    }),
 
-  register: (data: RegisterRequest): Promise<RegisterResponse> =>
-    http.post('/auth/register', data),
+  register: async (data: RegisterRequest): Promise<RegisterResponse> =>
+    http.post('/auth/register', {
+      ...data,
+      password: await encryptSensitive(data.password),
+    }),
 
   refreshToken: (refreshToken: string): Promise<RefreshTokenResponse> =>
     axios

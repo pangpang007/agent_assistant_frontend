@@ -50,6 +50,9 @@ export interface UpdateProfileRequest {
 }
 
 export interface UpdatePasswordRequest {
-  current_password: string;
+  /** Preferred field name (transport encryption API) */
+  old_password?: string;
+  /** Legacy Phase 1 field name */
+  current_password?: string;
   new_password: string;
 }

@@ -77,7 +77,7 @@ export default function ProfilePage() {
     setIsPasswordSubmitting(true);
     try {
       await userService.updatePassword({
-        current_password: currentPassword,
+        old_password: currentPassword,
         new_password: newPassword,
       });
       success('密码更新成功');
