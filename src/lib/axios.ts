@@ -1,9 +1,10 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { toast } from '@/components/ui/Toast';
 import { authStorage } from '@/lib/authStorage';
+import { getApiBaseUrl } from '@/lib/backendConfig';
 import type { RefreshTokenResponse } from '@/types';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const BASE_URL = getApiBaseUrl();
 
 const instance = axios.create({
   baseURL: BASE_URL,

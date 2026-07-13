@@ -1,5 +1,6 @@
 import axios from 'axios';
 import http from '@/lib/axios';
+import { getApiBaseUrl } from '@/lib/backendConfig';
 import type {
   LoginRequest,
   LoginResponse,
@@ -8,7 +9,7 @@ import type {
   RefreshTokenResponse,
 } from '@/types';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const BASE_URL = getApiBaseUrl();
 
 export const authService = {
   login: (data: LoginRequest): Promise<LoginResponse> => http.post('/auth/login', data),

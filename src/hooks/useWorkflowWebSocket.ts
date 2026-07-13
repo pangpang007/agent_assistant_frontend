@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { toast } from '@/components/ui/Toast';
+import { getWebSocketApiBase } from '@/lib/backendConfig';
 import { useWorkflowEditorStore } from '@/stores/workflowEditorStore';
-
-const WS_BASE = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000/api';
 
 export function useWorkflowWebSocket(executionId: string | null) {
   const updateNodeExecutionStatus = useWorkflowEditorStore((s) => s.updateNodeExecutionStatus);
@@ -18,7 +17,7 @@ export function useWorkflowWebSocket(executionId: string | null) {
 
     const connect = () => {
       if (cancelled) return;
-      ws = new WebSocket(`${WS_BASE}/executions/${executionId}/stream`);
+      ws = new WebSocket(`${getWebSocketApiBase()}/executions/${executionId}/stream`);
 
       ws.onopen = () => {
         retryRef.current = 0;
