@@ -1,0 +1,99 @@
+.retrieval-card {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color var(--duration-fast) var(--ease-default);
+}
+
+.retrieval-card:hover {
+  border-color: var(--border-strong);
+}
+
+.retrieval-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.retrieval-card__header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.retrieval-card__rank {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--accent-primary-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--accent-primary);
+  font-family: var(--font-family-code);
+  flex-shrink: 0;
+}
+
+.retrieval-card__source {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+.retrieval-card__source span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
+}
+
+.retrieval-card__score {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  font-family: var(--font-family-code);
+}
+
+.retrieval-card__content {
+  padding: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  line-height: var(--leading-relaxed);
+  white-space: pre-wrap;
+  position: relative;
+}
+
+.retrieval-card__content mark {
+  background: var(--accent-primary-subtle);
+  color: var(--accent-primary);
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.retrieval-card__content--collapsed {
+  max-height: 160px;
+  overflow: hidden;
+}
+
+.retrieval-card__content--collapsed::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(transparent, var(--bg-elevated));
+  pointer-events: none;
+}
+
+.retrieval-card__toggle {
+  margin: var(--space-2) var(--space-4) var(--space-3);
+}

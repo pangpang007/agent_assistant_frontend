@@ -1,0 +1,60 @@
+.tooltip-trigger {
+  display: inline-flex;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: var(--z-tooltip);
+  max-width: 240px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.95);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.tooltip--visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.tooltip--top {
+  transform: translate(-50%, -100%) scale(0.95);
+}
+
+.tooltip--top.tooltip--visible {
+  transform: translate(-50%, -100%) scale(1);
+}
+
+.tooltip--bottom {
+  transform: translate(-50%, 0) scale(0.95);
+}
+
+.tooltip--bottom.tooltip--visible {
+  transform: translate(-50%, 0) scale(1);
+}
+
+.tooltip--left {
+  transform: translate(-100%, -50%) scale(0.95);
+}
+
+.tooltip--left.tooltip--visible {
+  transform: translate(-100%, -50%) scale(1);
+}
+
+.tooltip--right {
+  transform: translate(0, -50%) scale(0.95);
+}
+
+.tooltip--right.tooltip--visible {
+  transform: translate(0, -50%) scale(1);
+}

@@ -1,0 +1,98 @@
+.doc-row {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-muted);
+  transition: background var(--duration-fast) var(--ease-default);
+  gap: var(--space-2);
+}
+
+.doc-row:last-child {
+  border-bottom: none;
+}
+
+.doc-row:hover {
+  background: var(--bg-hover);
+}
+
+.doc-row__name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 2;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.doc-row__name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-row__file-icon--pdf {
+  color: var(--accent-danger);
+}
+
+.doc-row__file-icon--csv {
+  color: var(--accent-success);
+}
+
+.doc-row__file-icon--docx {
+  color: var(--accent-primary);
+}
+
+.doc-row__file-icon--text {
+  color: var(--text-secondary);
+}
+
+.doc-row__size,
+.doc-row__chunks {
+  width: 80px;
+  text-align: right;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-family-code);
+}
+
+.doc-row__status {
+  width: 120px;
+}
+
+.doc-row__time {
+  width: 120px;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+.doc-row__actions {
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.doc-row__delete {
+  color: var(--accent-danger);
+}
+
+.doc-row__dash {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 768px) {
+  .doc-row {
+    flex-wrap: wrap;
+  }
+
+  .doc-row__name {
+    flex: 1 1 100%;
+  }
+
+  .doc-row__actions {
+    margin-left: auto;
+  }
+}

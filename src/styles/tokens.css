@@ -1,0 +1,151 @@
+/* ===== Design Tokens ===== */
+:root,
+[data-theme='dark'] {
+  /* --- 背景色 --- */
+  --bg-canvas: #0d1117;
+  --bg-surface: #161b22;
+  --bg-elevated: #21262d;
+  --bg-input: #0d1117;
+  --bg-overlay: rgba(0, 0, 0, 0.6);
+  --bg-hover: #1f2937;
+  --bg-active: #2d333b;
+
+  /* --- 文字色 --- */
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-tertiary: #6e7681;
+  --text-inverse: #ffffff;
+  --text-link: #58a6ff;
+
+  /* --- 边框色 --- */
+  --border-default: #30363d;
+  --border-muted: #21262d;
+  --border-strong: #8b949e;
+
+  /* --- 功能色 --- */
+  --accent-primary: #58a6ff;
+  --accent-primary-hover: #79c0ff;
+  --accent-primary-active: #388bfd;
+  --accent-primary-subtle: rgba(88, 166, 255, 0.1);
+
+  --accent-success: #3fb950;
+  --accent-success-subtle: rgba(63, 185, 80, 0.1);
+  --accent-warning: #d29922;
+  --accent-warning-subtle: rgba(210, 153, 34, 0.1);
+  --accent-danger: #f85149;
+  --accent-danger-subtle: rgba(248, 81, 73, 0.1);
+
+  /* --- 字体 --- */
+  --font-mono: 'Consolas', 'Monaco', 'Courier New', monospace;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-family-base: var(--font-sans);
+  --font-family-code: var(--font-mono);
+
+  /* --- 字号 --- */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --text-3xl: 30px;
+
+  /* --- 字重 --- */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* --- 行高 --- */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* --- 间距 --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* --- 圆角 --- */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* --- 阴影 --- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-focus: 0 0 0 3px rgba(88, 166, 255, 0.3);
+
+  /* --- 动效 --- */
+  --duration-fast: 100ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-modal: 150ms;
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* --- 层级 --- */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal-backdrop: 300;
+  --z-modal: 400;
+  --z-toast: 500;
+  --z-tooltip: 600;
+
+  /* --- 布局尺寸 --- */
+  --topnav-height: 56px;
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+  --content-padding: 24px;
+}
+
+[data-theme='light'] {
+  --bg-canvas: #ffffff;
+  --bg-surface: #f6f8fa;
+  --bg-elevated: #ffffff;
+  --bg-input: #ffffff;
+  --bg-overlay: rgba(0, 0, 0, 0.3);
+  --bg-hover: rgba(175, 184, 193, 0.2);
+  --bg-active: rgba(175, 184, 193, 0.3);
+
+  --text-primary: #1f2328;
+  --text-secondary: #656d76;
+  --text-tertiary: #8b949e;
+  --text-inverse: #ffffff;
+  --text-link: #0969da;
+
+  --border-default: #d0d7de;
+  --border-muted: #d8dee4;
+  --border-strong: #6e7781;
+
+  --accent-primary: #0969da;
+  --accent-primary-hover: #0550ae;
+  --accent-primary-active: #033d8b;
+  --accent-primary-subtle: rgba(9, 105, 218, 0.1);
+
+  --accent-success: #1a7f37;
+  --accent-success-subtle: rgba(26, 127, 55, 0.1);
+  --accent-warning: #9a6700;
+  --accent-warning-subtle: rgba(154, 103, 0, 0.1);
+  --accent-danger: #cf222e;
+  --accent-danger-subtle: rgba(207, 34, 46, 0.1);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.16);
+  --shadow-focus: 0 0 0 3px rgba(9, 105, 218, 0.3);
+}

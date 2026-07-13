@@ -1,0 +1,6 @@
+.invite-code-input input {
+  font-family: var(--font-family-code);
+  letter-spacing: 1.5px;
+  font-size: var(--text-md);
+  text-transform: uppercase;
+}

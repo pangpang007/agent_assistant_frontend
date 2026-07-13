@@ -1,0 +1,25 @@
+.app-layout {
+  display: grid;
+  grid-template-rows: var(--topnav-height) 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  height: 100vh;
+}
+
+.app-layout--collapsed {
+  grid-template-columns: var(--sidebar-collapsed-width) 1fr;
+}
+
+.app-layout--mobile {
+  grid-template-columns: 1fr;
+}
+
+.app-layout--mobile .sidebar-nav {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.app-layout__content {
+  overflow-y: auto;
+  padding: var(--content-padding);
+  background: var(--bg-canvas);
+}

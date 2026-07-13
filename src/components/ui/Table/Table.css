@@ -1,0 +1,82 @@
+.table-wrapper {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table thead {
+  background: var(--bg-surface);
+}
+
+.table th {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.table__th--sortable {
+  cursor: pointer;
+}
+
+.table__th-content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.table__sort-icons {
+  display: inline-flex;
+  flex-direction: column;
+  color: var(--text-tertiary);
+}
+
+.table__sort-active {
+  color: var(--accent-primary);
+}
+
+.table td {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  border-top: 1px solid var(--border-muted);
+}
+
+.table tbody tr {
+  transition: background var(--duration-fast) var(--ease-default);
+}
+
+.table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.table__row--clickable {
+  cursor: pointer;
+}
+
+.table__empty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: var(--space-8) !important;
+}
+
+.table__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-default);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.table__pagination-actions {
+  display: flex;
+  gap: var(--space-2);
+}
