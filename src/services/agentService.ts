@@ -20,5 +20,6 @@ export const agentService = {
 
   delete: (id: string): Promise<void> => http.delete(`/agents/${id}`),
 
-  duplicate: (id: string): Promise<Agent> => http.post(`/agents/${id}/duplicate`),
+  duplicate: (id: string, name?: string): Promise<Agent> =>
+    http.post(`/agents/${id}/copy`, { name: name ?? null }),
 };

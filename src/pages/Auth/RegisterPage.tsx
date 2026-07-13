@@ -68,7 +68,7 @@ export default function RegisterPage() {
         email: email.trim(),
         username: username.trim(),
         password,
-        register_type: registerType,
+        account_type: registerType,
         ...(registerType === 'team' ? { team_name: teamName.trim() } : {}),
       });
       success('注册成功，请登录');

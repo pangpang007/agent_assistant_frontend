@@ -10,30 +10,45 @@ import type {
   UsageResponse,
 } from '@/types';
 
-async function withEncryptedApiKey<T extends { api_key?: string }>(data: T): Promise<T> {
-  if (!data.api_key) return data;
+function toCreatePayload(data: CreateSupplierRequest) {
   return {
-    ...data,
-    api_key: await encryptOptional(data.api_key),
+    provider_name: data.name,
+    provider_type: data.type,
+    api_key: data.api_key,
+    base_url: data.base_url,
+  };
+}
+
+function toUpdatePayload(data: UpdateSupplierRequest) {
+  return {
+    ...(data.name !== undefined ? { provider_name: data.name } : {}),
+    ...(data.api_key !== undefined ? { api_key: data.api_key } : {}),
+    ...(data.base_url !== undefined ? { base_url: data.base_url } : {}),
   };
 }
 
 export const modelService = {
   getSuppliers: (): Promise<SupplierListResponse> => http.get('/models/providers'),
 
-  createSupplier: async (data: CreateSupplierRequest): Promise<ModelSupplier> =>
-    http.post('/models/providers', await withEncryptedApiKey(data)),
+  createSupplier: async (data: CreateSupplierRequest): Promise<ModelSupplier> => {
+    const api_key = (await encryptOptional(data.api_key)) ?? data.api_key;
+    return http.post('/models/providers', toCreatePayload({ ...data, api_key }));
+  },
 
-  updateSupplier: async (id: string, data: UpdateSupplierRequest): Promise<ModelSupplier> =>
-    http.put(`/models/providers/${id}`, await withEncryptedApiKey(data)),
+  updateSupplier: async (id: string, data: UpdateSupplierRequest): Promise<ModelSupplier> => {
+    const encrypted = data.api_key
+      ? { ...data, api_key: await encryptOptional(data.api_key) }
+      : data;
+    return http.put(`/models/providers/${id}`, toUpdatePayload(encrypted));
+  },
 
   deleteSupplier: (id: string): Promise<void> => http.delete(`/models/providers/${id}`),
 
-  toggleSupplierStatus: (id: string, status: SupplierStatus): Promise<ModelSupplier> =>
-    http.put(`/models/providers/${id}/status`, { status }),
+  toggleSupplierStatus: (id: string, _status: SupplierStatus): Promise<ModelSupplier> =>
+    http.post(`/models/providers/${id}/toggle`),
 
   setDefaultModel: (modelId: string): Promise<void> =>
-    http.put(`/models/${modelId}/default`),
+    http.post(`/models/${modelId}/set-default`),
 
   getUsage: (params?: {
     start_date?: string;

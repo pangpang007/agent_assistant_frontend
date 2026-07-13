@@ -2,6 +2,7 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { toast } from '@/components/ui/Toast';
 import { authStorage } from '@/lib/authStorage';
 import { getApiBaseUrl } from '@/lib/backendConfig';
+import { isApiEnvelope, isApiSuccessCode, unwrapApiData } from '@/lib/apiEnvelope';
 import type { RefreshTokenResponse } from '@/types';
 
 const BASE_URL = getApiBaseUrl();
@@ -43,7 +44,33 @@ instance.interceptors.request.use((config) => {
 });
 
 instance.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    const body = response.data;
+
+    // Unwrap { code, message, data } so callers get `data` directly
+    if (isApiEnvelope(body)) {
+      if (!isApiSuccessCode(body.code)) {
+        const message =
+          typeof body.message === 'string' && body.message
+            ? body.message
+            : '请求失败';
+        return Promise.reject(
+          Object.assign(new Error(message), {
+            isAxiosError: true,
+            response: {
+              ...response,
+              status: response.status,
+              data: body,
+            },
+            config: response.config,
+          }),
+        );
+      }
+      return body.data;
+    }
+
+    return body;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
@@ -71,10 +98,14 @@ instance.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post<RefreshTokenResponse>(`${BASE_URL}/auth/refresh`, {
+        const refreshResponse = await axios.post(`${BASE_URL}/auth/refresh`, {
           refresh_token: refreshToken,
         });
-        authStorage.setTokens(data.access_token, data.refresh_token);
+        const tokens = unwrapApiData<RefreshTokenResponse>(refreshResponse.data);
+        if (!tokens?.access_token || !tokens?.refresh_token) {
+          throw new Error('刷新令牌响应无效');
+        }
+        authStorage.setTokens(tokens.access_token, tokens.refresh_token);
         processQueue(null);
         return instance(originalRequest);
       } catch (refreshError) {

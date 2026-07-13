@@ -23,7 +23,9 @@ export interface RegisterRequest {
   email: string;
   username: string;
   password: string;
-  register_type: RegisterType;
+  /** @deprecated use account_type — kept for UI compatibility */
+  register_type?: RegisterType;
+  account_type?: RegisterType;
   team_name?: string;
 }
 

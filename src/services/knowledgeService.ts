@@ -10,48 +10,61 @@ import type {
   UpdateKnowledgeBaseRequest,
 } from '@/types';
 
-export const knowledgeService = {
-  getList: (): Promise<KnowledgeBaseListResponse> => http.get('/knowledge-bases'),
+const BASE = '/knowledge';
 
-  getById: (id: string): Promise<KnowledgeBase> => http.get(`/knowledge-bases/${id}`),
+export const knowledgeService = {
+  getList: (params?: {
+    page?: number;
+    page_size?: number;
+    keyword?: string;
+  }): Promise<KnowledgeBaseListResponse> => http.get(BASE, { params }),
+
+  getById: (id: string): Promise<KnowledgeBase> => http.get(`${BASE}/${id}`),
 
   create: (data: CreateKnowledgeBaseRequest): Promise<KnowledgeBase> =>
-    http.post('/knowledge-bases', data),
+    http.post(BASE, data),
 
-  update: (id: string, data: UpdateKnowledgeBaseRequest): Promise<KnowledgeBase> =>
-    http.put(`/knowledge-bases/${id}`, data),
+  update: (id: string, data: UpdateKnowledgeBaseRequest): Promise<KnowledgeBase> => {
+    const { chunk_size, chunk_overlap, ...rest } = data;
+    if (chunk_size !== undefined || chunk_overlap !== undefined) {
+      return http.put(`${BASE}/${id}/config`, {
+        chunk_size,
+        chunk_overlap,
+      });
+    }
+    return http.put(`${BASE}/${id}`, rest);
+  },
 
-  delete: (id: string): Promise<void> => http.delete(`/knowledge-bases/${id}`),
+  delete: (id: string): Promise<void> => http.delete(`${BASE}/${id}`),
 
   getDocuments: (kbId: string): Promise<DocumentListResponse> =>
-    http.get(`/knowledge-bases/${kbId}/documents`),
+    http.get(`${BASE}/${kbId}/documents`),
 
   getDocument: (kbId: string, docId: string): Promise<KnowledgeDocument> =>
-    http.get(`/knowledge-bases/${kbId}/documents/${docId}`),
+    http.get(`${BASE}/${kbId}/documents/${docId}/status`),
 
   uploadDocument: (
     kbId: string,
     file: File,
-    onProgress?: (progress: number) => void,
+    onUploadProgress?: (percent: number) => void,
   ): Promise<KnowledgeDocument> => {
     const formData = new FormData();
     formData.append('file', file);
-    return http.post(`/knowledge-bases/${kbId}/documents`, formData, {
+    return http.post(`${BASE}/${kbId}/documents`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress: (progressEvent) => {
-        if (progressEvent.total && onProgress) {
-          onProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
-        }
+      onUploadProgress: (event) => {
+        if (!onUploadProgress || !event.total) return;
+        onUploadProgress(Math.round((event.loaded / event.total) * 100));
       },
     });
   },
 
   deleteDocument: (kbId: string, docId: string): Promise<void> =>
-    http.delete(`/knowledge-bases/${kbId}/documents/${docId}`),
+    http.delete(`${BASE}/${kbId}/documents/${docId}`),
 
   reprocessDocument: (kbId: string, docId: string): Promise<KnowledgeDocument> =>
-    http.post(`/knowledge-bases/${kbId}/documents/${docId}/reprocess`),
+    http.post(`${BASE}/${kbId}/documents/${docId}/reprocess`),
 
   search: (kbId: string, data: RetrievalQuery): Promise<RetrievalResponse> =>
-    http.post(`/knowledge-bases/${kbId}/search`, data),
+    http.post(`${BASE}/${kbId}/search`, data),
 };

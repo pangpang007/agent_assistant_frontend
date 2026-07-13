@@ -1,6 +1,7 @@
 import axios from 'axios';
 import http from '@/lib/axios';
 import { getApiBaseUrl } from '@/lib/backendConfig';
+import { unwrapApiData } from '@/lib/apiEnvelope';
 import { encryptSensitive } from '@/lib/transportCrypto';
 import type {
   LoginRequest,
@@ -19,16 +20,23 @@ export const authService = {
       password: await encryptSensitive(data.password),
     }),
 
-  register: async (data: RegisterRequest): Promise<RegisterResponse> =>
-    http.post('/auth/register', {
-      ...data,
+  register: async (data: RegisterRequest): Promise<RegisterResponse> => {
+    const { register_type, account_type, ...rest } = data as RegisterRequest & {
+      account_type?: string;
+    };
+    return http.post('/auth/register', {
+      ...rest,
+      account_type: account_type ?? register_type ?? 'personal',
       password: await encryptSensitive(data.password),
-    }),
+    });
+  },
 
-  refreshToken: (refreshToken: string): Promise<RefreshTokenResponse> =>
-    axios
-      .post(`${BASE_URL}/auth/refresh`, { refresh_token: refreshToken })
-      .then((res) => res.data as RefreshTokenResponse),
+  refreshToken: async (refreshToken: string): Promise<RefreshTokenResponse> => {
+    const response = await axios.post(`${BASE_URL}/auth/refresh`, {
+      refresh_token: refreshToken,
+    });
+    return unwrapApiData<RefreshTokenResponse>(response.data);
+  },
 
   logout: (): Promise<void> => http.post('/auth/logout'),
 };

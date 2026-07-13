@@ -3,8 +3,17 @@ import axios from 'axios';
 export function getApiErrorMessage(error: unknown, fallback = '操作失败，请重试'): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as
-      | { message?: string; detail?: string | Array<{ msg?: string }> }
+      | {
+          message?: string;
+          detail?: string | Array<{ msg?: string }>;
+          error?: { message?: string; details?: Array<{ field?: string; message?: string }> };
+        }
       | undefined;
+
+    if (typeof data?.error?.message === 'string') {
+      const firstDetail = data.error.details?.[0]?.message;
+      return firstDetail ? `${data.error.message}：${firstDetail}` : data.error.message;
+    }
     if (typeof data?.message === 'string') return data.message;
     if (typeof data?.detail === 'string') return data.detail;
     if (Array.isArray(data?.detail)) {
@@ -14,6 +23,7 @@ export function getApiErrorMessage(error: unknown, fallback = '操作失败，�
       }
     }
   }
+  if (error instanceof Error && error.message) return error.message;
   return fallback;
 }
 

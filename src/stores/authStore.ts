@@ -57,10 +57,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   login: async (email, password) => {
     const response = await authService.login({ email, password });
+    if (!response?.access_token || !response?.refresh_token) {
+      throw new Error('登录响应缺少 token，请检查后端返回格式');
+    }
     authStorage.setTokens(response.access_token, response.refresh_token);
-    authStorage.setUser(response.user);
+    if (response.user) {
+      authStorage.setUser(response.user);
+    }
     set({
-      user: response.user,
+      user: response.user ?? null,
       accessToken: response.access_token,
       refreshToken: response.refresh_token,
       isAuthenticated: true,

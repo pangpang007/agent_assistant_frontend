@@ -3,10 +3,10 @@ import { encryptSensitive } from '@/lib/transportCrypto';
 import type { UpdatePasswordRequest, UpdateProfileRequest, UserInfo } from '@/types';
 
 export const userService = {
-  getProfile: (): Promise<UserInfo> => http.get('/user/profile'),
+  getProfile: (): Promise<UserInfo> => http.get('/users/profile'),
 
   updateProfile: (data: UpdateProfileRequest): Promise<UserInfo> =>
-    http.put('/user/profile', data),
+    http.patch('/users/profile', data),
 
   updatePassword: async (data: UpdatePasswordRequest): Promise<{ message: string }> => {
     const oldPassword = data.old_password ?? data.current_password;
@@ -20,5 +20,5 @@ export const userService = {
     });
   },
 
-  deleteAccount: (): Promise<void> => http.delete('/user/account'),
+  deleteAccount: (): Promise<void> => http.delete('/users/profile'),
 };

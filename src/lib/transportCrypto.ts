@@ -8,12 +8,6 @@ interface PublicKeyPayload {
   public_key_pem?: string;
 }
 
-interface PublicKeyApiResponse {
-  data?: PublicKeyPayload;
-  public_jwk?: JsonWebKey;
-  public_key_pem?: string;
-}
-
 let cachedJwk: JsonWebKey | null = null;
 let cachedAt = 0;
 let inflight: Promise<JsonWebKey> | null = null;
@@ -43,9 +37,9 @@ async function fetchPublicJwk(): Promise<JsonWebKey> {
 
   if (inflight) return inflight;
 
-  inflight = (http.get('/crypto/public-key') as Promise<PublicKeyApiResponse>)
+  inflight = (http.get('/crypto/public-key') as Promise<PublicKeyPayload>)
     .then((res) => {
-      const jwk = res.data?.public_jwk ?? res.public_jwk;
+      const jwk = res.public_jwk;
       if (!jwk) {
         throw new Error('公钥响应缺少 public_jwk');
       }
