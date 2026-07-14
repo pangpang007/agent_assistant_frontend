@@ -16,7 +16,7 @@ export const menuConfig: MenuItemConfig[] = [
     key: 'dashboard',
     label: 'Dashboard',
     icon: <LayoutDashboard size={16} strokeWidth={1.5} />,
-    path: '/',
+    path: '/dashboard',
   },
   {
     key: 'workflows',
@@ -74,12 +74,13 @@ export const menuConfig: MenuItemConfig[] = [
       { key: 'settings-team', label: '团队管理', path: '/settings/team' },
       { key: 'settings-model', label: '模型管理', path: '/settings/models' },
       { key: 'settings-env', label: '环境变量', path: '/settings/env' },
+      { key: 'settings-api', label: 'API 管理', path: '/settings/api' },
     ],
   },
 ];
 
 export function getActiveMenuKey(pathname: string): string {
-  if (pathname === '/') return 'dashboard';
+  if (pathname === '/' || pathname === '/dashboard') return 'dashboard';
   if (pathname.startsWith('/workflows/new')) return 'workflow-editor';
   if (pathname.startsWith('/workflows')) return 'workflow-list';
   if (pathname.startsWith('/templates')) return 'templates';
@@ -92,5 +93,6 @@ export function getActiveMenuKey(pathname: string): string {
   if (pathname.startsWith('/settings/team')) return 'settings-team';
   if (pathname.startsWith('/settings/models') || pathname.startsWith('/settings/model')) return 'settings-model';
   if (pathname.startsWith('/settings/env')) return 'settings-env';
+  if (pathname.startsWith('/settings/api')) return 'settings-api';
   return '';
 }

@@ -1,4 +1,5 @@
 import type { ReactElement, ReactNode } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, type RenderOptions } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -26,6 +27,18 @@ export const mockTeamOwner: UserInfo = {
   team_name: '测试团队',
 };
 
+const testQueryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
+
+export function clearTestQueryClient() {
+  testQueryClient.clear();
+}
+
 export function resetAuthStore(overrides?: Partial<ReturnType<typeof useAuthStore.getState>>) {
   useAuthStore.setState({
     user: null,
@@ -49,9 +62,11 @@ export function setAuthenticatedUser(user: UserInfo = mockUser) {
 
 function Providers({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider>
-      <ToastProvider>{children}</ToastProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={testQueryClient}>
+      <ThemeProvider>
+        <ToastProvider>{children}</ToastProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

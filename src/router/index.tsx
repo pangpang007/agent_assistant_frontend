@@ -1,30 +1,38 @@
+import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
 import { AuthGuard } from '@/components/auth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { EditorLayout } from '@/components/layout/EditorLayout';
+import { PageSkeleton } from '@/components/common/PageSkeleton';
 import { ErrorBoundary } from '@/pages/Error/ErrorBoundary';
 import LoginPage from '@/pages/Auth/LoginPage';
 import RegisterPage from '@/pages/Auth/RegisterPage';
-import DashboardPage from '@/pages/Dashboard/DashboardPage';
-import WorkflowListPage from '@/pages/Workflows/WorkflowListPage';
-import WorkflowEditorPage from '@/pages/Workflows/WorkflowEditorPage';
-import TemplateLibraryPage from '@/pages/Templates/TemplateLibraryPage';
-import ExecutionListPage from '@/pages/Executions/ExecutionListPage';
-import ExecutionDetailPage from '@/pages/Executions/ExecutionDetailPage';
-import AgentListPage from '@/pages/Agents/AgentListPage';
-import AgentFormPage from '@/pages/Agents/AgentFormPage';
-import AgentDetailPage from '@/pages/Agents/AgentDetailPage';
-import KnowledgeListPage from '@/pages/Knowledge/KnowledgeListPage';
-import KnowledgeDetailPage from '@/pages/Knowledge/KnowledgeDetailPage';
-import ToolListPage from '@/pages/Tools/ToolListPage';
-import ToolFormPage from '@/pages/Tools/ToolFormPage';
-import ToolTestPage from '@/pages/Tools/ToolTestPage';
-import LogCenterPage from '@/pages/Logs/LogCenterPage';
-import ProfilePage from '@/pages/Settings/ProfilePage';
-import TeamSettingsPage from '@/pages/Settings/TeamSettingsPage';
-import ModelSettingsPage from '@/pages/Settings/ModelSettingsPage';
-import EnvVarsPage from '@/pages/Settings/EnvVarsPage';
-import NotFoundPage from '@/pages/Error/NotFoundPage';
+
+const DashboardPage = lazy(() => import('@/pages/Dashboard/DashboardPage'));
+const WorkflowListPage = lazy(() => import('@/pages/Workflows/WorkflowListPage'));
+const WorkflowEditorPage = lazy(() => import('@/pages/Workflows/WorkflowEditorPage'));
+const TemplateLibraryPage = lazy(() => import('@/pages/Templates/TemplateLibraryPage'));
+const ExecutionListPage = lazy(() => import('@/pages/Executions/ExecutionListPage'));
+const ExecutionDetailPage = lazy(() => import('@/pages/Executions/ExecutionDetailPage'));
+const AgentListPage = lazy(() => import('@/pages/Agents/AgentListPage'));
+const AgentFormPage = lazy(() => import('@/pages/Agents/AgentFormPage'));
+const AgentDetailPage = lazy(() => import('@/pages/Agents/AgentDetailPage'));
+const KnowledgeListPage = lazy(() => import('@/pages/Knowledge/KnowledgeListPage'));
+const KnowledgeDetailPage = lazy(() => import('@/pages/Knowledge/KnowledgeDetailPage'));
+const ToolListPage = lazy(() => import('@/pages/Tools/ToolListPage'));
+const ToolFormPage = lazy(() => import('@/pages/Tools/ToolFormPage'));
+const ToolTestPage = lazy(() => import('@/pages/Tools/ToolTestPage'));
+const LogCenterPage = lazy(() => import('@/pages/Logs/LogCenterPage'));
+const ProfilePage = lazy(() => import('@/pages/Settings/ProfilePage'));
+const TeamSettingsPage = lazy(() => import('@/pages/Settings/TeamSettingsPage'));
+const ModelSettingsPage = lazy(() => import('@/pages/Settings/ModelSettingsPage'));
+const EnvVarsPage = lazy(() => import('@/pages/Settings/EnvVarsPage'));
+const ApiManagementPage = lazy(() => import('@/pages/Settings/ApiManagementPage'));
+const NotFoundPage = lazy(() => import('@/pages/Error/NotFoundPage'));
+
+function SuspenseWrapper({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<PageSkeleton />}>{children}</Suspense>;
+}
 
 export const router = createBrowserRouter([
   {
@@ -47,41 +55,203 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <DashboardPage /> },
-          { path: 'workflows', element: <WorkflowListPage /> },
+          { index: true, element: <Navigate to="/dashboard" replace /> },
+          {
+            path: 'dashboard',
+            element: (
+              <SuspenseWrapper>
+                <DashboardPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'workflows',
+            element: (
+              <SuspenseWrapper>
+                <WorkflowListPage />
+              </SuspenseWrapper>
+            ),
+          },
           { path: 'workflows/templates', element: <Navigate to="/templates" replace /> },
           { path: 'workflows/history', element: <Navigate to="/executions" replace /> },
-          { path: 'templates', element: <TemplateLibraryPage /> },
-          { path: 'executions', element: <ExecutionListPage /> },
-          { path: 'executions/:id', element: <ExecutionDetailPage /> },
-          { path: 'agents', element: <AgentListPage /> },
-          { path: 'agents/create', element: <AgentFormPage /> },
-          { path: 'agents/:id/edit', element: <AgentFormPage /> },
-          { path: 'agents/:id/view', element: <AgentDetailPage /> },
-          { path: 'knowledge', element: <KnowledgeListPage /> },
-          { path: 'knowledge/:id', element: <KnowledgeDetailPage /> },
-          { path: 'tools', element: <ToolListPage /> },
-          { path: 'tools/create', element: <ToolFormPage /> },
-          { path: 'tools/:id/edit', element: <ToolFormPage /> },
-          { path: 'tools/:id/test', element: <ToolTestPage /> },
-          { path: 'logs', element: <LogCenterPage /> },
+          {
+            path: 'templates',
+            element: (
+              <SuspenseWrapper>
+                <TemplateLibraryPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'executions',
+            element: (
+              <SuspenseWrapper>
+                <ExecutionListPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'executions/:id',
+            element: (
+              <SuspenseWrapper>
+                <ExecutionDetailPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'agents',
+            element: (
+              <SuspenseWrapper>
+                <AgentListPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'agents/create',
+            element: (
+              <SuspenseWrapper>
+                <AgentFormPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'agents/:id/edit',
+            element: (
+              <SuspenseWrapper>
+                <AgentFormPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'agents/:id/view',
+            element: (
+              <SuspenseWrapper>
+                <AgentDetailPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'knowledge',
+            element: (
+              <SuspenseWrapper>
+                <KnowledgeListPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'knowledge/:id',
+            element: (
+              <SuspenseWrapper>
+                <KnowledgeDetailPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'tools',
+            element: (
+              <SuspenseWrapper>
+                <ToolListPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'tools/create',
+            element: (
+              <SuspenseWrapper>
+                <ToolFormPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'tools/:id/edit',
+            element: (
+              <SuspenseWrapper>
+                <ToolFormPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'tools/:id/test',
+            element: (
+              <SuspenseWrapper>
+                <ToolTestPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'logs',
+            element: (
+              <SuspenseWrapper>
+                <LogCenterPage />
+              </SuspenseWrapper>
+            ),
+          },
           { path: 'settings', element: <Navigate to="/settings/profile" replace /> },
-          { path: 'settings/profile', element: <ProfilePage /> },
-          { path: 'settings/team', element: <TeamSettingsPage /> },
+          {
+            path: 'settings/profile',
+            element: (
+              <SuspenseWrapper>
+                <ProfilePage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'settings/team',
+            element: (
+              <SuspenseWrapper>
+                <TeamSettingsPage />
+              </SuspenseWrapper>
+            ),
+          },
           { path: 'settings/personal', element: <Navigate to="/settings/profile" replace /> },
-          { path: 'settings/models', element: <ModelSettingsPage /> },
+          {
+            path: 'settings/models',
+            element: (
+              <SuspenseWrapper>
+                <ModelSettingsPage />
+              </SuspenseWrapper>
+            ),
+          },
           { path: 'settings/model', element: <Navigate to="/settings/models" replace /> },
-          { path: 'settings/env', element: <EnvVarsPage /> },
+          {
+            path: 'settings/env',
+            element: (
+              <SuspenseWrapper>
+                <EnvVarsPage />
+              </SuspenseWrapper>
+            ),
+          },
+          {
+            path: 'settings/api',
+            element: (
+              <SuspenseWrapper>
+                <ApiManagementPage />
+              </SuspenseWrapper>
+            ),
+          },
         ],
       },
       {
         element: <EditorLayout />,
         children: [
-          // /workflows/new 与 /workflows/:id 共用编辑器；new 作为 id 触发创建流程
-          { path: 'workflows/:id', element: <WorkflowEditorPage /> },
+          {
+            path: 'workflows/:id',
+            element: (
+              <SuspenseWrapper>
+                <WorkflowEditorPage />
+              </SuspenseWrapper>
+            ),
+          },
         ],
       },
-      { path: '*', element: <NotFoundPage /> },
+      {
+        path: '*',
+        element: (
+          <SuspenseWrapper>
+            <NotFoundPage />
+          </SuspenseWrapper>
+        ),
+      },
     ],
   },
 ]);

@@ -1,7 +1,6 @@
-import { Bot, Menu, Moon, Search, Sun } from 'lucide-react';
+import { Bot, Menu, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Input } from '@/components/ui/Input';
-import { Tag } from '@/components/ui/Tag';
+import { GlobalSearch } from '@/components/common/GlobalSearch';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { useTheme } from '@/theme/useTheme';
 import { useAuthStore } from '@/stores/authStore';
@@ -33,13 +32,7 @@ export function TopNav({ onMenuClick, showMenuButton = false }: TopNavProps) {
         <span className="top-nav__brand">汤圆代码助手</span>
       </div>
       <div className="top-nav__search">
-        <Input
-          size="md"
-          placeholder="搜索工作流、Agent、工具..."
-          leftIcon={<Search size={16} strokeWidth={1.5} />}
-          rightIcon={<Tag color="default">⌘K</Tag>}
-          disabled
-        />
+        <GlobalSearch />
       </div>
       <div className="top-nav__spacer" />
       <button

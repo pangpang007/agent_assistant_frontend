@@ -15,6 +15,7 @@ import { executionEdgeTypes } from '@/components/workflow/edges/ExecutionEdge';
 import { isExecutionActive, useExecutionStore } from '@/stores/executionStore';
 import { useWorkflowEditorStore } from '@/stores/workflowEditorStore';
 import { getNodeGroupColor } from '@/lib/workflow/nodeDefaults';
+import { canvasPerformanceProps } from '@/utils/canvasPerformance';
 import { nodeTypes } from './nodes';
 import type { NodeType, WorkflowNode } from '@/types';
 
@@ -135,6 +136,7 @@ function CanvasInner() {
       <ReactFlow
         nodes={nodes}
         edges={flowEdges}
+        {...canvasPerformanceProps}
         onNodesChange={executing ? undefined : onNodesChange}
         onEdgesChange={executing ? undefined : onEdgesChange}
         onConnect={
@@ -161,7 +163,6 @@ function CanvasInner() {
         fitView
         snapToGrid
         snapGrid={[20, 20]}
-        proOptions={{ hideAttribution: true }}
         deleteKeyCode={executing ? null : 'Delete'}
         multiSelectionKeyCode="Shift"
         panOnScroll={false}
@@ -169,8 +170,6 @@ function CanvasInner() {
         zoomOnPinch
         panOnDrag
         selectionKeyCode="Shift"
-        minZoom={0.1}
-        maxZoom={2}
         onInit={() => {
           window.setTimeout(() => fitView({ padding: 0.2 }), 100);
         }}

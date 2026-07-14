@@ -19,6 +19,7 @@
 | [phase4/](./phase4/) | 已完成 | 工作流编辑器（React Flow） |
 | [phase5/](./phase5/) | 已完成 | 工作流执行引擎（运行 / WebSocket / 审核） |
 | [phase6/](./phase6/) | 已完成 | 模板库、版本增强、执行历史、日志中心、环境变量 |
+| [phase7/](./phase7/) | 已完成 | Dashboard、API 发布、全局搜索、错误/性能/响应式打磨 |
 
 ## 目录规范
 

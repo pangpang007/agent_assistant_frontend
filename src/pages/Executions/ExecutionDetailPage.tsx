@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Spinner';
 import { nodeTypes } from '@/components/workflow/nodes';
 import { formatCost, formatTokenCount } from '@/lib/validation';
+import { getCanvasReadonlyProps } from '@/utils/canvasPerformance';
 import { useExecutionHistoryStore } from '@/stores/executionHistoryStore';
 import type { HistoryExecutionDetail, HistoryNodeResult } from '@/types/phase6';
 import type { NodeExecutionStatus, WorkflowEdge, WorkflowNode } from '@/types';
@@ -89,9 +90,7 @@ function ReadonlyCanvas({
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}
-      nodesDraggable={false}
-      nodesConnectable={false}
-      elementsSelectable
+      {...getCanvasReadonlyProps(true)}
       fitView
       onNodeClick={onNodeClick}
       defaultEdgeOptions={{

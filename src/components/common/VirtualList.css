@@ -1,0 +1,4 @@
+.virtual-list {
+  overflow-y: auto;
+  height: 100%;
+}

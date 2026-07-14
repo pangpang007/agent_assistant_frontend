@@ -1,0 +1,51 @@
+.copy-input {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.copy-input__value {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  min-width: 0;
+}
+
+.copy-input__value--single {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copy-input__value--code {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.copy-input__btn {
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border-default);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-default),
+    background var(--duration-fast) var(--ease-default);
+  flex-shrink: 0;
+}
+
+.copy-input__btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}

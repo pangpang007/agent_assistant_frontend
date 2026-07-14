@@ -8,7 +8,7 @@ function Boom(): never {
   throw new Error('boom');
 }
 
-describe('ErrorBoundary (Phase 0)', () => {
+describe('ErrorBoundary (Phase 7)', () => {
   it('shows fallback UI when child throws', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     renderWithProviders(
@@ -18,8 +18,8 @@ describe('ErrorBoundary (Phase 0)', () => {
         </ErrorBoundary>
       </MemoryRouter>,
     );
-    expect(screen.getByText('出错了')).toBeInTheDocument();
-    expect(screen.getByText('应用遇到了意外错误')).toBeInTheDocument();
+    expect(screen.getByText('出了点问题')).toBeInTheDocument();
+    expect(screen.getByText('应用遇到了意外错误，请尝试刷新页面。')).toBeInTheDocument();
     expect(screen.getByText('boom')).toBeInTheDocument();
     spy.mockRestore();
   });

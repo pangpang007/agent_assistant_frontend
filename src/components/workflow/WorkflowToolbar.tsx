@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Download,
+  Globe,
   History,
   LayoutGrid,
   LayoutTemplate,
@@ -16,8 +17,10 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
+import { PublishApiModal } from '@/components/workflow/PublishApiModal';
 import { RunConfigModal } from '@/components/workflow/execution/RunConfigModal';
 import { StopConfirmModal } from '@/components/workflow/execution/StopConfirmModal';
+import { apiService } from '@/services/apiService';
 import { workflowService } from '@/services/workflowService';
 import { isExecutionActive, useExecutionStore } from '@/stores/executionStore';
 import { useWorkflowEditorStore } from '@/stores/workflowEditorStore';
@@ -69,6 +72,22 @@ export function WorkflowToolbar({
   const [runOpen, setRunOpen] = useState(false);
   const [stopOpen, setStopOpen] = useState(false);
   const [stopLoading, setStopLoading] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [isPublishedApi, setIsPublishedApi] = useState(false);
+
+  useEffect(() => {
+    if (!workflowId) {
+      setIsPublishedApi(false);
+      return;
+    }
+    let cancelled = false;
+    void apiService.getByWorkflow(workflowId).then((api) => {
+      if (!cancelled) setIsPublishedApi(Boolean(api));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [workflowId, publishOpen]);
 
   const startNode = nodes.find((n) => n.type === 'start');
   const inputVariables = useMemo(() => {
@@ -274,6 +293,19 @@ export function WorkflowToolbar({
           </Button>
         )}
 
+        <div className="workflow-toolbar__divider" />
+
+        <Button
+          variant="ghost"
+          size="sm"
+          leftIcon={<Globe size={16} />}
+          disabled={!workflowId || executing}
+          className="workflow-toolbar__publish-btn"
+          onClick={() => setPublishOpen(true)}
+        >
+          {isPublishedApi ? 'API 已发布' : '发布为 API'}
+        </Button>
+
         <VersionSelector onSelectVersion={(v) => void onLoadVersion(v)} />
       </header>
 
@@ -292,6 +324,15 @@ export function WorkflowToolbar({
         onConfirm={handleStop}
         loading={stopLoading}
       />
+
+      {workflowId && (
+        <PublishApiModal
+          open={publishOpen}
+          onClose={() => setPublishOpen(false)}
+          workflowId={workflowId}
+          workflowName={workflowName}
+        />
+      )}
     </>
   );
 }
