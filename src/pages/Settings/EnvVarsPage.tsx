@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Plus, Trash2 } from 'lucide-react';
 import { SecretMask } from '@/components/env/SecretMask';
@@ -9,67 +9,53 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Table, type Column } from '@/components/ui/Table';
 import { Tag } from '@/components/ui/Tag';
 import { useToast } from '@/components/ui/Toast';
-import { useEnvVarStore } from '@/stores/envVarStore';
+import { handleApiError } from '@/utils/apiErrorHandler';
+import { useEnvListPage } from './env/hooks';
 import type { EnvVariable } from '@/types/phase6';
 import '@/styles/phase2.css';
 import '@/styles/phase6.css';
 
 export default function EnvVarsPage() {
-  const { success, error: toastError } = useToast();
-  const items = useEnvVarStore((s) => s.items);
-  const loading = useEnvVarStore((s) => s.loading);
-  const fetch = useEnvVarStore((s) => s.fetch);
-  const create = useEnvVarStore((s) => s.create);
-  const update = useEnvVarStore((s) => s.update);
-  const remove = useEnvVarStore((s) => s.remove);
+  const { success } = useToast();
+  const listPage = useEnvListPage();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<EnvVariable | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EnvVariable | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    void fetch();
-  }, [fetch]);
+  const handleCreate = async (values: Parameters<typeof listPage.create>[0]) => {
+    try {
+      await listPage.create(values);
+      success('环境变量已创建');
+    } catch (error) {
+      handleApiError(error, '创建环境变量');
+      throw error;
+    }
+  };
 
-  const handleCreate = useCallback(
-    async (values: Parameters<typeof create>[0]) => {
-      try {
-        await create(values);
-        success('环境变量已创建');
-      } catch {
-        toastError('创建失败');
-        throw new Error('create failed');
-      }
-    },
-    [create, success, toastError],
-  );
-
-  const handleUpdate = useCallback(
-    async (values: Parameters<typeof create>[0]) => {
-      if (!editing) return;
-      try {
-        const patch: Partial<typeof values> = { type: values.type };
-        if (values.value) patch.value = values.value;
-        await update(editing.id, patch);
-        success('环境变量已更新');
-      } catch {
-        toastError('更新失败');
-        throw new Error('update failed');
-      }
-    },
-    [editing, success, toastError, update],
-  );
+  const handleUpdate = async (values: Parameters<typeof listPage.create>[0]) => {
+    if (!editing) return;
+    try {
+      const patch: Partial<typeof values> = { type: values.type };
+      if (values.value) patch.value = values.value;
+      await listPage.update(editing.id, patch);
+      success('环境变量已更新');
+    } catch (error) {
+      handleApiError(error, '更新环境变量');
+      throw error;
+    }
+  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await remove(deleteTarget.id);
+      await listPage.remove(deleteTarget.id);
       success('已删除');
       setDeleteTarget(null);
-    } catch {
-      toastError('删除失败');
+    } catch (error) {
+      handleApiError(error, '删除环境变量');
     } finally {
       setDeleting(false);
     }
@@ -153,7 +139,7 @@ export default function EnvVarsPage() {
         </Button>
       </div>
 
-      {!loading && items.length === 0 ? (
+      {!listPage.loading && listPage.isEmpty ? (
         <EmptyState
           title="暂无环境变量"
           description="创建环境变量供工作流节点引用"
@@ -168,10 +154,16 @@ export default function EnvVarsPage() {
       ) : (
         <Table
           columns={columns as unknown as Column<Record<string, unknown>>[]}
-          data={items as unknown as Record<string, unknown>[]}
+          data={listPage.items as unknown as Record<string, unknown>[]}
           rowKey="id"
-          loading={loading}
+          loading={listPage.loading}
           emptyText="暂无环境变量"
+          pagination={{
+            current: listPage.page,
+            pageSize: listPage.pageSize,
+            total: listPage.total,
+            onChange: (p) => listPage.setPage(p),
+          }}
         />
       )}
 

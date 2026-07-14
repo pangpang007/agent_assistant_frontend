@@ -101,6 +101,8 @@ export interface WorkflowListParams {
   search?: string;
   sort_by?: 'name' | 'updated_at' | 'created_at';
   sort_order?: 'asc' | 'desc';
+  page?: number;
+  page_size?: number;
 }
 
 export interface Workflow {

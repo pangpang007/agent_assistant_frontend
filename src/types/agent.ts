@@ -20,8 +20,10 @@ export type UpdateAgentRequest = Partial<CreateAgentRequest>;
 export interface AgentListParams {
   type?: AgentType;
   search?: string;
-  sort_by?: 'name' | 'created_at';
+  sort_by?: 'name' | 'created_at' | 'updated_at';
   sort_order?: 'asc' | 'desc';
+  page?: number;
+  page_size?: number;
 }
 
 export interface Agent {

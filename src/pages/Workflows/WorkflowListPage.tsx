@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GitBranch, Plus, Search, Upload } from 'lucide-react';
 import { WorkflowCard } from '@/components/workflow/WorkflowCard';
 import { ImportModal } from '@/components/workflow/ImportModal';
 import { DeleteConfirmModal } from '@/components/shared/DeleteConfirmModal';
+import { ListPagination } from '@/components/common/ListPagination';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
@@ -11,24 +12,35 @@ import { FormSelect } from '@/components/shared/FormSelect';
 import { Skeleton } from '@/components/ui/Spinner';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
-import { useDebounce } from '@/hooks/useDebounce';
-import { getApiErrorMessage } from '@/lib/validation';
 import { workflowService } from '@/services/workflowService';
-import type { WorkflowListItem } from '@/types';
+import { handleApiError } from '@/utils/apiErrorHandler';
+import { useWorkflowListPage } from './hooks';
 import '@/styles/workflow.css';
 import '@/styles/phase2.css';
 
-type SortBy = 'updated_at' | 'created_at' | 'name';
-
 export default function WorkflowListPage() {
   const navigate = useNavigate();
-  const { success, error: toastError } = useToast();
+  const { error: toastError } = useToast();
+  const {
+    items,
+    total,
+    page,
+    pageSize,
+    sortBy,
+    loading,
+    isEmpty,
+    loadError,
+    searchInput,
+    setPage,
+    setSort,
+    safeFetch,
+    handleSearchChange,
+    handleCreate,
+    handleRename,
+    handleDuplicate,
+    handleDelete,
+  } = useWorkflowListPage();
 
-  const [workflows, setWorkflows] = useState<WorkflowListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortBy>('updated_at');
   const [importOpen, setImportOpen] = useState(false);
   const [deleteModal, setDeleteModal] = useState({
     open: false,
@@ -37,75 +49,10 @@ export default function WorkflowListPage() {
     isDeleting: false,
   });
 
-  const debouncedSearch = useDebounce(searchQuery);
-
-  const fetchList = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(false);
-    try {
-      const res = await workflowService.getList({
-        search: debouncedSearch || undefined,
-        sort_by: sortBy,
-        sort_order: 'desc',
-      });
-      setWorkflows(res?.workflows ?? []);
-    } catch {
-      setLoadError(true);
-      toastError('加载工作流列表失败');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [debouncedSearch, sortBy, toastError]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch
-    void fetchList();
-  }, [fetchList]);
-
-  const filtered = useMemo(() => {
-    const list = workflows ?? [];
-    if (!debouncedSearch) return list;
-    const q = debouncedSearch.toLowerCase();
-    return list.filter(
-      (w) =>
-        w.name.toLowerCase().includes(q) ||
-        w.description?.toLowerCase().includes(q),
-    );
-  }, [workflows, debouncedSearch]);
-
-  const handleCreate = async () => {
-    try {
-      const workflow = await workflowService.create({ name: '未命名工作流' });
-      navigate(`/workflows/${workflow.id}`);
-    } catch {
-      toastError('创建工作流失败');
-    }
-  };
-
-  const handleRename = async (id: string, name: string) => {
-    try {
-      await workflowService.update(id, { name });
-      success('重命名成功');
-      void fetchList();
-    } catch (err) {
-      toastError(getApiErrorMessage(err, '重命名失败'));
-    }
-  };
-
-  const handleDuplicate = async (id: string) => {
-    try {
-      const workflow = await workflowService.duplicate(id);
-      success('复制成功');
-      navigate(`/workflows/${workflow.id}`);
-    } catch {
-      toastError('复制失败');
-    }
-  };
-
   const handleExport = async (id: string) => {
     try {
       const data = await workflowService.export(id);
-      const wf = workflows.find((w) => w.id === id);
+      const wf = items.find((w) => w.id === id);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -113,7 +60,8 @@ export default function WorkflowListPage() {
       a.download = `${wf?.name ?? 'workflow'}_export.json`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
+    } catch (error) {
+      handleApiError(error, '导出工作流');
       toastError('导出失败');
     }
   };
@@ -121,12 +69,9 @@ export default function WorkflowListPage() {
   const confirmDelete = async () => {
     setDeleteModal((prev) => ({ ...prev, isDeleting: true }));
     try {
-      await workflowService.delete(deleteModal.id);
-      success('删除成功');
+      await handleDelete(deleteModal.id);
       setDeleteModal({ open: false, id: '', name: '', isDeleting: false });
-      void fetchList();
     } catch {
-      toastError('删除失败');
       setDeleteModal((prev) => ({ ...prev, isDeleting: false }));
     }
   };
@@ -151,8 +96,8 @@ export default function WorkflowListPage() {
       <div className="workflow-list-page__toolbar">
         <Input
           placeholder="搜索工作流..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={searchInput}
+          onChange={(e) => handleSearchChange(e.target.value)}
           leftIcon={<Search size={16} />}
         />
         <FormSelect
@@ -162,11 +107,11 @@ export default function WorkflowListPage() {
             { value: 'created_at', label: '创建时间' },
             { value: 'name', label: '名称' },
           ]}
-          onChange={(v) => setSortBy(v as SortBy)}
+          onChange={(v) => setSort(v, 'desc')}
         />
       </div>
 
-      {isLoading ? (
+      {loading ? (
         <div className="workflow-list-page__grid">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} height={200} />
@@ -176,9 +121,9 @@ export default function WorkflowListPage() {
         <EmptyState
           title="加载失败"
           description="请稍后重试"
-          action={{ label: '重试', onClick: () => void fetchList() }}
+          action={{ label: '重试', onClick: () => void safeFetch() }}
         />
-      ) : filtered.length === 0 ? (
+      ) : isEmpty ? (
         <EmptyState
           icon={<GitBranch size={40} />}
           title="还没有工作流"
@@ -186,31 +131,34 @@ export default function WorkflowListPage() {
           action={{ label: '新建工作流', onClick: () => void handleCreate() }}
         />
       ) : (
-        <div className="workflow-list-page__grid">
-          {filtered.map((workflow) => (
-            <WorkflowCard
-              key={workflow.id}
-              workflow={workflow}
-              onEdit={(wfId) => navigate(`/workflows/${wfId}`)}
-              onRun={(wfId) => navigate(`/workflows/${wfId}`)}
-              onRename={handleRename}
-              onDuplicate={handleDuplicate}
-              onExport={handleExport}
-              onDelete={(wfId, name) =>
-                setDeleteModal({ open: true, id: wfId, name, isDeleting: false })
-              }
-            />
-          ))}
-          <Card
-            hoverable
-            padding="md"
-            className="workflow-card workflow-card--create"
-            onClick={() => void handleCreate()}
-          >
-            <Plus size={32} />
-            <span>新建工作流</span>
-          </Card>
-        </div>
+        <>
+          <div className="workflow-list-page__grid">
+            {items.map((workflow) => (
+              <WorkflowCard
+                key={workflow.id}
+                workflow={workflow}
+                onEdit={(wfId) => navigate(`/workflows/${wfId}`)}
+                onRun={(wfId) => navigate(`/workflows/${wfId}`)}
+                onRename={handleRename}
+                onDuplicate={handleDuplicate}
+                onExport={handleExport}
+                onDelete={(wfId, name) =>
+                  setDeleteModal({ open: true, id: wfId, name, isDeleting: false })
+                }
+              />
+            ))}
+            <Card
+              hoverable
+              padding="md"
+              className="workflow-card workflow-card--create"
+              onClick={() => void handleCreate()}
+            >
+              <Plus size={32} />
+              <span>新建工作流</span>
+            </Card>
+          </div>
+          <ListPagination page={page} pageSize={pageSize} total={total} onChange={setPage} />
+        </>
       )}
 
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} />

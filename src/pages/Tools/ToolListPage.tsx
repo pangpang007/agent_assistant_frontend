@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { AlertTriangle, Plus, Search, Wrench } from 'lucide-react';
 import { DeleteConfirmModal } from '@/components/shared/DeleteConfirmModal';
+import { ListPagination } from '@/components/common/ListPagination';
 import { ToolCard } from '@/components/tools/ToolCard';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -9,24 +9,34 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Spinner';
 import { Tag } from '@/components/ui/Tag';
-import { useToast } from '@/components/ui/Toast';
-import { useDebounce } from '@/hooks/useDebounce';
-import { getApiErrorMessage } from '@/lib/validation';
-import { toolService } from '@/services/toolService';
+import { handleApiError } from '@/utils/apiErrorHandler';
+import { useToolListPage } from './hooks';
 import type { Tool, ToolType } from '@/types';
 import '@/styles/phase2.css';
 
 type TypeFilter = 'all' | ToolType;
 
 export default function ToolListPage() {
-  const navigate = useNavigate();
-  const { success, error: toastError } = useToast();
+  const {
+    items,
+    total,
+    page,
+    pageSize,
+    loading,
+    isEmpty,
+    keyword,
+    searchInput,
+    typeFilter,
+    loadError,
+    navigate,
+    setPage,
+    safeFetch,
+    handleSearchChange,
+    setTypeFilter,
+    handleDelete,
+    loadReferences,
+  } = useToolListPage();
 
-  const [tools, setTools] = useState<Tool[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [deleteModal, setDeleteModal] = useState({
     open: false,
     id: '',
@@ -37,77 +47,43 @@ export default function ToolListPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [viewTool, setViewTool] = useState<Tool | null>(null);
 
-  const debouncedSearch = useDebounce(searchQuery);
-
-  const fetchTools = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(false);
-    try {
-      const res = await toolService.getList({
-        type: typeFilter === 'all' ? undefined : typeFilter,
-        search: debouncedSearch || undefined,
-      });
-      setTools(res?.tools ?? []);
-    } catch {
-      setLoadError(true);
-      toastError('加载工具列表失败');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [debouncedSearch, toastError, typeFilter]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch on filter change
-    void fetchTools();
-  }, [fetchTools]);
-
-  const filteredTools = useMemo(() => {
-    if (!debouncedSearch) return tools;
-    const q = debouncedSearch.toLowerCase();
-    return tools.filter(
-      (t) => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q),
-    );
-  }, [tools, debouncedSearch]);
-
-  const presetTools = filteredTools.filter((t) => t.type === 'preset');
-  const customTools = filteredTools.filter((t) => t.type === 'custom');
+  const presetTools = items.filter((t) => t.type === 'preset');
+  const customTools = items.filter((t) => t.type === 'custom');
 
   const openDeleteModal = async (tool: Tool) => {
     try {
-      const refs = await toolService.getReferences(tool.id);
+      const refs = await loadReferences(tool);
       setDeleteModal({
         open: true,
         id: tool.id,
         name: tool.name,
-        agentCount: refs.agent_count,
-        agentNames: (refs.agents ?? []).map((a) => a.name),
+        agentCount: refs.agentCount,
+        agentNames: refs.agentNames,
       });
-    } catch (err) {
-      toastError(getApiErrorMessage(err, '获取引用信息失败'));
+    } catch (error) {
+      handleApiError(error, '获取引用信息');
     }
   };
 
-  const handleDelete = async () => {
+  const confirmDelete = async () => {
     setIsDeleting(true);
     try {
-      await toolService.delete(deleteModal.id);
-      success(deleteModal.agentCount > 0 ? '工具已删除，相关 Agent 已更新' : '工具已删除');
+      await handleDelete(deleteModal.id, deleteModal.agentCount);
       setDeleteModal({ open: false, id: '', name: '', agentCount: 0, agentNames: [] });
-      void fetchTools();
-    } catch (err) {
-      toastError(getApiErrorMessage(err, '删除失败'));
+    } catch {
+      /* toasted */
     } finally {
       setIsDeleting(false);
     }
   };
 
-  if (loadError && !isLoading && tools.length === 0) {
+  if (loadError && !loading && items.length === 0) {
     return (
       <div className="phase2-page">
         <EmptyState
           icon={<AlertTriangle size={48} />}
           title="加载失败"
-          action={{ label: '重试', onClick: () => void fetchTools() }}
+          action={{ label: '重试', onClick: () => void safeFetch() }}
         />
       </div>
     );
@@ -132,36 +108,38 @@ export default function ToolListPage() {
             fullWidth
             leftIcon={<Search size={16} />}
             placeholder="搜索工具..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
-        <select className="phase2-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}>
+        <select
+          className="phase2-select"
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
+        >
           <option value="all">全部</option>
           <option value="preset">预置</option>
           <option value="custom">自定义</option>
         </select>
       </div>
 
-      {isLoading ? (
+      {loading ? (
         <div className="phase2-grid">
           {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} variant="rectangular" height={180} />
           ))}
         </div>
-      ) : filteredTools.length === 0 ? (
+      ) : isEmpty ? (
         <EmptyState
-          icon={debouncedSearch ? <Search size={48} /> : <Wrench size={48} />}
-          title={debouncedSearch ? '未找到匹配的工具' : '暂无自定义工具'}
+          icon={keyword ? <Search size={48} /> : <Wrench size={48} />}
+          title={keyword ? '未找到匹配的工具' : '暂无自定义工具'}
           description={
-            debouncedSearch
+            keyword
               ? '尝试更换关键词搜索'
               : '预置工具已就绪，你也可以通过 OpenAPI 规范导入自定义工具。'
           }
           action={
-            !debouncedSearch
-              ? { label: '创建自定义工具', onClick: () => navigate('/tools/create') }
-              : undefined
+            !keyword ? { label: '创建自定义工具', onClick: () => navigate('/tools/create') } : undefined
           }
         />
       ) : (
@@ -213,6 +191,7 @@ export default function ToolListPage() {
               )}
             </section>
           )}
+          <ListPagination page={page} pageSize={pageSize} total={total} onChange={setPage} />
         </>
       )}
 
@@ -221,7 +200,7 @@ export default function ToolListPage() {
         onClose={() =>
           setDeleteModal({ open: false, id: '', name: '', agentCount: 0, agentNames: [] })
         }
-        onConfirm={() => void handleDelete()}
+        onConfirm={() => void confirmDelete()}
         title="删除工具"
         description={
           deleteModal.agentCount === 0

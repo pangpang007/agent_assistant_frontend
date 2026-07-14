@@ -1,59 +1,47 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useState } from 'react';
 import { LayoutTemplate, Search } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Spinner';
+import { ListPagination } from '@/components/common/ListPagination';
 import { useToast } from '@/components/ui/Toast';
-import { useDebounce } from '@/hooks/useDebounce';
 import { templateService } from '@/services/templateService';
-import { useTemplateStore } from '@/stores/templateStore';
+import { handleApiError } from '@/utils/apiErrorHandler';
 import type { Template, TemplateCategory } from '@/types/phase6';
 import { TemplateCard } from './TemplateCard';
 import { TEMPLATE_CATEGORIES } from './templateCategories';
+import { useTemplateListPage } from './hooks';
 import '@/styles/phase2.css';
 import '@/styles/phase6.css';
 import './Templates.css';
 
 export default function TemplateLibraryPage() {
-  const navigate = useNavigate();
-  const { success, error: toastError } = useToast();
-  const templates = useTemplateStore((s) => s.templates);
-  const loading = useTemplateStore((s) => s.loading);
-  const filters = useTemplateStore((s) => s.filters);
-  const setFilter = useTemplateStore((s) => s.setFilter);
-  const fetchTemplates = useTemplateStore((s) => s.fetchTemplates);
+  const { success } = useToast();
+  const {
+    items,
+    total,
+    page,
+    pageSize,
+    loading,
+    isEmpty,
+    searchInput,
+    source,
+    category,
+    navigate,
+    setPage,
+    handleSearchChange,
+    setSource,
+    setCategory,
+  } = useTemplateListPage();
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearch = useDebounce(searchQuery);
   const [useModal, setUseModal] = useState<{ open: boolean; template: Template | null }>({
     open: false,
     template: null,
   });
   const [workflowName, setWorkflowName] = useState('');
   const [using, setUsing] = useState(false);
-
-  useEffect(() => {
-    setFilter({ keyword: debouncedSearch });
-  }, [debouncedSearch, setFilter]);
-
-  useEffect(() => {
-    void fetchTemplates();
-  }, [fetchTemplates, filters.category, filters.source]);
-
-  const filteredTemplates = useMemo(() => {
-    const list = templates ?? [];
-    if (!debouncedSearch) return list;
-    const q = debouncedSearch.toLowerCase();
-    return list.filter(
-      (t) =>
-        t.name.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        t.tags.some((tag) => tag.toLowerCase().includes(q)),
-    );
-  }, [templates, debouncedSearch]);
 
   const openUseModal = (template: Template) => {
     setUseModal({ open: true, template });
@@ -69,12 +57,12 @@ export default function TemplateLibraryPage() {
       success('工作流创建成功');
       setUseModal({ open: false, template: null });
       navigate(`/workflows/${res.workflow_id}`);
-    } catch {
-      toastError('创建失败，请重试');
+    } catch (error) {
+      handleApiError(error, '使用模板');
     } finally {
       setUsing(false);
     }
-  }, [navigate, success, toastError, useModal.template, workflowName]);
+  }, [navigate, success, useModal.template, workflowName]);
 
   return (
     <div className="phase2-page">
@@ -92,19 +80,19 @@ export default function TemplateLibraryPage() {
             fullWidth
             leftIcon={<Search size={16} />}
             placeholder="搜索模板..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
         <div className="phase6-source-toggle">
-          {(['all', 'official', 'custom'] as const).map((source) => (
+          {(['all', 'official', 'custom'] as const).map((key) => (
             <button
-              key={source}
+              key={key}
               type="button"
-              className={filters.source === source ? 'phase6-source-toggle--active' : ''}
-              onClick={() => setFilter({ source })}
+              className={source === key ? 'phase6-source-toggle--active' : ''}
+              onClick={() => setSource(key)}
             >
-              {source === 'all' ? '全部' : source === 'official' ? '官方' : '我的'}
+              {key === 'all' ? '全部' : key === 'official' ? '官方' : '我的'}
             </button>
           ))}
         </div>
@@ -114,14 +102,14 @@ export default function TemplateLibraryPage() {
         {TEMPLATE_CATEGORIES.map((cat) => {
           const Icon = cat.icon;
           const active =
-            filters.category === cat.key || (cat.key === 'all' && filters.category === 'all');
+            category === cat.key || (cat.key === 'all' && category === 'all');
           return (
             <button
               key={cat.key}
               type="button"
               className={`phase6-filter-pill${active ? ' phase6-filter-pill--active' : ''}`}
               onClick={() =>
-                setFilter({ category: cat.key === 'all' ? 'all' : (cat.key as TemplateCategory) })
+                setCategory(cat.key === 'all' ? 'all' : (cat.key as TemplateCategory))
               }
             >
               <Icon size={14} />
@@ -137,7 +125,7 @@ export default function TemplateLibraryPage() {
             <Skeleton key={i} height={320} />
           ))}
         </div>
-      ) : filteredTemplates.length === 0 ? (
+      ) : isEmpty ? (
         <EmptyState
           icon={<LayoutTemplate size={48} />}
           title="没有找到匹配的模板"
@@ -145,11 +133,14 @@ export default function TemplateLibraryPage() {
           action={{ label: '浏览工作流', onClick: () => navigate('/workflows') }}
         />
       ) : (
-        <div className="phase6-grid">
-          {filteredTemplates.map((template) => (
-            <TemplateCard key={template.id} template={template} onUse={openUseModal} />
-          ))}
-        </div>
+        <>
+          <div className="phase6-grid">
+            {items.map((template) => (
+              <TemplateCard key={template.id} template={template} onUse={openUseModal} />
+            ))}
+          </div>
+          <ListPagination page={page} pageSize={pageSize} total={total} onChange={setPage} />
+        </>
       )}
 
       <Modal

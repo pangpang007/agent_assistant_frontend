@@ -12,8 +12,11 @@ import { Tag } from '@/components/ui/Tag';
 import { useToast } from '@/components/ui/Toast';
 import { SUPPLIER_TYPE_LABELS } from '@/lib/phase2Constants';
 import { asArray } from '@/lib/arrayUtils';
-import { formatCost, formatTokenCount, getApiErrorMessage } from '@/lib/validation';
+import { formatCost, formatTokenCount } from '@/lib/validation';
 import { modelService } from '@/services/modelService';
+import { handleApiError } from '@/utils/apiErrorHandler';
+import { useModelListPage } from './models/hooks';
+import { useModelListStore } from './models/store';
 import type {
   CreateSupplierRequest,
   ModelSupplier,
@@ -28,16 +31,16 @@ import './ModelSettingsPage.css';
 const SUPPLIER_TYPES: SupplierType[] = ['openai', 'anthropic', 'google', 'custom'];
 
 export default function ModelSettingsPage() {
-  const { success, error: toastError } = useToast();
+  const { success } = useToast();
+  const { items: suppliers, loading: isLoadingSuppliers, create, update, toggleEnabled, isEmpty } =
+    useModelListPage();
 
-  const [suppliers, setSuppliers] = useState<ModelSupplier[]>([]);
   const [usageRecords, setUsageRecords] = useState<UsageRecord[]>([]);
   const [usageSummary, setUsageSummary] = useState({
     total_input_tokens: 0,
     total_output_tokens: 0,
     total_cost: 0,
   });
-  const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(true);
   const [isLoadingUsage, setIsLoadingUsage] = useState(true);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -49,19 +52,6 @@ export default function ModelSettingsPage() {
   const [baseUrl, setBaseUrl] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const fetchSuppliers = useCallback(async () => {
-    setIsLoadingSuppliers(true);
-    try {
-      const res = await modelService.getSuppliers();
-      setSuppliers(asArray(res?.suppliers));
-    } catch {
-      setSuppliers([]);
-      toastError('加载供应商列表失败');
-    } finally {
-      setIsLoadingSuppliers(false);
-    }
-  }, [toastError]);
 
   const fetchUsage = useCallback(async () => {
     setIsLoadingUsage(true);
@@ -75,19 +65,17 @@ export default function ModelSettingsPage() {
           total_cost: 0,
         },
       );
-    } catch {
+    } catch (error) {
       setUsageRecords([]);
-      toastError('加载用量统计失败');
+      handleApiError(error, '加载用量统计');
     } finally {
       setIsLoadingUsage(false);
     }
-  }, [toastError]);
+  }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial page data load
-    void fetchSuppliers();
     void fetchUsage();
-  }, [fetchSuppliers, fetchUsage]);
+  }, [fetchUsage]);
 
   const openCreateModal = () => {
     setModalMode('create');
@@ -111,15 +99,15 @@ export default function ModelSettingsPage() {
 
   const handleSubmitSupplier = async () => {
     if (!apiKey && modalMode === 'create') {
-      toastError('请输入 API Key');
+      handleApiError(new Error('请输入 API Key'), '添加供应商');
       return;
     }
     if (supplierType === 'custom' && !supplierName.trim()) {
-      toastError('请输入供应商名称');
+      handleApiError(new Error('请输入供应商名称'), '添加供应商');
       return;
     }
     if (supplierType === 'custom' && modalMode === 'create' && !baseUrl.trim()) {
-      toastError('自定义供应商需填写 Base URL');
+      handleApiError(new Error('自定义供应商需填写 Base URL'), '添加供应商');
       return;
     }
 
@@ -132,10 +120,10 @@ export default function ModelSettingsPage() {
           api_key: apiKey,
           base_url: supplierType === 'custom' ? baseUrl : undefined,
         };
-        await modelService.createSupplier(payload);
+        await create(payload);
         success('供应商添加成功');
       } else if (editingSupplier) {
-        await modelService.updateSupplier(editingSupplier.id, {
+        await update(editingSupplier.id, {
           type: supplierType,
           name: supplierName.trim(),
           ...(apiKey ? { api_key: apiKey } : {}),
@@ -144,46 +132,39 @@ export default function ModelSettingsPage() {
         success('供应商更新成功');
       }
       setModalOpen(false);
-      void fetchSuppliers();
     } catch (err) {
-      toastError(getApiErrorMessage(err, 'API Key 无效，请检查后重试'));
+      handleApiError(err, '保存供应商');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleToggleStatus = async (id: string, currentStatus: SupplierStatus) => {
-    const next: SupplierStatus = currentStatus === 'active' ? 'disabled' : 'active';
-    const prev = suppliers;
-    setSuppliers((s) =>
-      s.map((sup) => (sup.id === id ? { ...sup, status: next } : sup)),
-    );
     try {
-      await modelService.toggleSupplierStatus(id, next);
-      success(next === 'active' ? '供应商已启用' : '供应商已禁用');
-    } catch (err) {
-      setSuppliers(prev);
-      toastError(getApiErrorMessage(err, '操作失败'));
+      await toggleEnabled(id, currentStatus);
+      success(currentStatus === 'active' ? '供应商已禁用' : '供应商已启用');
+    } catch {
+      /* toasted */
     }
   };
 
   const handleSetDefault = async (modelId: string) => {
-    const prev = suppliers;
-    setSuppliers((s) =>
-      s.map((sup) => ({
+    const prev = useModelListStore.getState().items;
+    useModelListStore.setState({
+      items: prev.map((sup) => ({
         ...sup,
         models: asArray<ModelSupplier['models'][number]>(sup.models).map((m) => ({
           ...m,
           is_default: m.id === modelId,
         })),
       })),
-    );
+    });
     try {
       await modelService.setDefaultModel(modelId);
       success('默认模型已更新');
     } catch (err) {
-      setSuppliers(prev);
-      toastError(getApiErrorMessage(err, '设置失败'));
+      useModelListStore.setState({ items: prev });
+      handleApiError(err, '设置默认模型');
     }
   };
 
@@ -200,8 +181,7 @@ export default function ModelSettingsPage() {
       dataIndex: 'model_name',
       render: (_, record) => (
         <span>
-          {record.model_name}{' '}
-          <Tag color="default">{record.supplier_name}</Tag>
+          {record.model_name} <Tag color="default">{record.supplier_name}</Tag>
         </span>
       ),
     },
@@ -254,7 +234,7 @@ export default function ModelSettingsPage() {
 
         {isLoadingSuppliers ? (
           <Skeleton variant="rectangular" height={200} />
-        ) : suppliers.length === 0 ? (
+        ) : isEmpty ? (
           <EmptyState
             icon={<Cpu size={48} />}
             title="暂无模型供应商"

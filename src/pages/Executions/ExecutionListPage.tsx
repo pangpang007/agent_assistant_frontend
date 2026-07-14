@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { Search } from 'lucide-react';
@@ -7,33 +7,48 @@ import { Table, type Column } from '@/components/ui/Table';
 import { Tag } from '@/components/ui/Tag';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatCost, formatTokenCount } from '@/lib/validation';
-import { useExecutionHistoryStore } from '@/stores/executionHistoryStore';
+import { handleApiError } from '@/utils/apiErrorHandler';
 import type { HistoryExecution } from '@/types/phase6';
 import { ExecutionStatusBadge } from './ExecutionStatusBadge';
+import { useExecutionListStore } from './store';
 import '@/styles/phase2.css';
 import '@/styles/phase6.css';
 
 export default function ExecutionListPage() {
   const navigate = useNavigate();
-  const list = useExecutionHistoryStore((s) => s.list);
-  const total = useExecutionHistoryStore((s) => s.total);
-  const page = useExecutionHistoryStore((s) => s.page);
-  const pageSize = useExecutionHistoryStore((s) => s.pageSize);
-  const loading = useExecutionHistoryStore((s) => s.loading);
-  const filters = useExecutionHistoryStore((s) => s.filters);
-  const setFilter = useExecutionHistoryStore((s) => s.setFilter);
-  const setPage = useExecutionHistoryStore((s) => s.setPage);
-  const fetchList = useExecutionHistoryStore((s) => s.fetchList);
+  const items = useExecutionListStore((s) => s.items);
+  const total = useExecutionListStore((s) => s.total);
+  const page = useExecutionListStore((s) => s.page);
+  const pageSize = useExecutionListStore((s) => s.pageSize);
+  const loading = useExecutionListStore((s) => s.loading);
+  const keyword = useExecutionListStore((s) => s.keyword);
+  const statusFilter = useExecutionListStore((s) => s.statusFilter);
+  const fetch = useExecutionListStore((s) => s.fetch);
+  const setPage = useExecutionListStore((s) => s.setPage);
+  const setKeyword = useExecutionListStore((s) => s.setKeyword);
+  const setStatusFilter = useExecutionListStore((s) => s.setStatusFilter);
 
-  const debouncedKeyword = useDebounce(filters.keyword ?? '');
+  const [searchInput, setSearchInput] = useState(keyword);
+  const debouncedKeyword = useDebounce(searchInput);
 
   useEffect(() => {
-    setFilter({ keyword: debouncedKeyword || undefined });
-  }, [debouncedKeyword, setFilter]);
+    if (debouncedKeyword !== keyword) {
+      setKeyword(debouncedKeyword);
+    }
+  }, [debouncedKeyword, keyword, setKeyword]);
 
   useEffect(() => {
-    void fetchList();
-  }, [fetchList, page, filters.status, filters.workflow_id, filters.keyword]);
+    void fetch().catch((error) => handleApiError(error, '加载执行历史'));
+  }, [fetch]);
+
+  const hasRunning = items.some((i) => i.status === 'running');
+  useEffect(() => {
+    if (!hasRunning) return;
+    const timer = setInterval(() => {
+      void fetch().catch(() => undefined);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [hasRunning, fetch]);
 
   const columns: Column<HistoryExecution>[] = [
     {
@@ -121,14 +136,14 @@ export default function ExecutionListPage() {
             fullWidth
             leftIcon={<Search size={16} />}
             placeholder="搜索工作流名称..."
-            value={filters.keyword ?? ''}
-            onChange={(e) => setFilter({ keyword: e.target.value })}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
         <select
           className="phase2-select"
-          value={filters.status ?? ''}
-          onChange={(e) => setFilter({ status: e.target.value || undefined })}
+          value={statusFilter ?? ''}
+          onChange={(e) => setStatusFilter(e.target.value || null)}
         >
           <option value="">全部状态</option>
           <option value="success">成功</option>
@@ -140,7 +155,7 @@ export default function ExecutionListPage() {
 
       <Table
         columns={columns as unknown as Column<Record<string, unknown>>[]}
-        data={list as unknown as Record<string, unknown>[]}
+        data={items as unknown as Record<string, unknown>[]}
         rowKey="id"
         loading={loading}
         emptyText="暂无执行记录"

@@ -1,40 +1,45 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { AlertTriangle, BookOpen, Plus, Search } from 'lucide-react';
 import { KnowledgeBaseCard } from '@/components/knowledge/KnowledgeBaseCard';
 import { DeleteConfirmModal } from '@/components/shared/DeleteConfirmModal';
+import { ListPagination } from '@/components/common/ListPagination';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Spinner';
-import { useToast } from '@/components/ui/Toast';
-import { useDebounce } from '@/hooks/useDebounce';
 import {
   validateKnowledgeBaseDescription,
   validateKnowledgeBaseName,
 } from '@/lib/knowledgeUtils';
-import { getApiErrorMessage, getApiErrorStatus } from '@/lib/validation';
-import { knowledgeService } from '@/services/knowledgeService';
-import type { KnowledgeBase } from '@/types';
+import { getApiErrorStatus } from '@/lib/validation';
+import { useKnowledgeListPage } from './hooks';
 import '@/styles/knowledge.css';
 import '@/styles/phase2.css';
 
 export default function KnowledgeListPage() {
-  const navigate = useNavigate();
-  const { success, error: toastError } = useToast();
-
-  const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const {
+    items,
+    total,
+    page,
+    pageSize,
+    loading,
+    keyword,
+    searchInput,
+    loadError,
+    setPage,
+    safeFetch,
+    handleSearchChange,
+    handleCreate,
+    handleDelete,
+    navigate,
+  } = useKnowledgeListPage();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState('');
   const [createDesc, setCreateDesc] = useState('');
   const [createErrors, setCreateErrors] = useState<{ name?: string; description?: string }>({});
   const [isCreating, setIsCreating] = useState(false);
-
   const [deleteModal, setDeleteModal] = useState({
     open: false,
     id: '',
@@ -43,37 +48,6 @@ export default function KnowledgeListPage() {
     isDeleting: false,
   });
 
-  const debouncedSearch = useDebounce(searchQuery);
-
-  const fetchList = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(false);
-    try {
-      const res = await knowledgeService.getList();
-      setKnowledgeBases(res?.knowledge_bases ?? []);
-    } catch {
-      setLoadError(true);
-      toastError('加载知识库列表失败');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toastError]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- data fetch on mount
-    void fetchList();
-  }, [fetchList]);
-
-  const filtered = useMemo(() => {
-    if (!debouncedSearch) return knowledgeBases;
-    const q = debouncedSearch.toLowerCase();
-    return knowledgeBases.filter(
-      (kb) =>
-        kb.name.toLowerCase().includes(q) ||
-        kb.description?.toLowerCase().includes(q),
-    );
-  }, [knowledgeBases, debouncedSearch]);
-
   const openCreate = () => {
     setCreateName('');
     setCreateDesc('');
@@ -81,54 +55,46 @@ export default function KnowledgeListPage() {
     setCreateOpen(true);
   };
 
-  const handleCreate = async () => {
+  const onCreate = async () => {
     const nameErr = validateKnowledgeBaseName(createName);
     const descErr = validateKnowledgeBaseDescription(createDesc);
     if (nameErr || descErr) {
       setCreateErrors({ name: nameErr, description: descErr });
       return;
     }
-
     setIsCreating(true);
     try {
-      const kb = await knowledgeService.create({
+      await handleCreate({
         name: createName.trim(),
         description: createDesc.trim() || undefined,
       });
-      success('知识库创建成功');
       setCreateOpen(false);
-      navigate(`/knowledge/${kb.id}`);
     } catch (err) {
       if (getApiErrorStatus(err) === 409) {
         setCreateErrors({ name: '已存在同名知识库' });
-      } else {
-        toastError(getApiErrorMessage(err, '创建失败，请重试'));
       }
     } finally {
       setIsCreating(false);
     }
   };
 
-  const handleDelete = async () => {
+  const confirmDelete = async () => {
     setDeleteModal((m) => ({ ...m, isDeleting: true }));
     try {
-      await knowledgeService.delete(deleteModal.id);
-      success('知识库已删除');
+      await handleDelete(deleteModal.id);
       setDeleteModal({ open: false, id: '', name: '', documentCount: 0, isDeleting: false });
-      void fetchList();
-    } catch (err) {
-      toastError(getApiErrorMessage(err, '删除失败'));
+    } catch {
       setDeleteModal((m) => ({ ...m, isDeleting: false }));
     }
   };
 
-  if (loadError && !isLoading && knowledgeBases.length === 0) {
+  if (loadError && !loading && items.length === 0) {
     return (
       <div className="knowledge-page">
         <EmptyState
           icon={<AlertTriangle size={48} />}
           title="加载失败"
-          action={{ label: '重试', onClick: () => void fetchList() }}
+          action={{ label: '重试', onClick: () => void safeFetch() }}
         />
       </div>
     );
@@ -153,50 +119,53 @@ export default function KnowledgeListPage() {
             fullWidth
             leftIcon={<Search size={16} />}
             placeholder="搜索知识库..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
       </div>
 
-      {isLoading ? (
+      {loading ? (
         <div className="knowledge-grid">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} variant="rectangular" height={200} />
           ))}
         </div>
-      ) : filtered.length === 0 && !debouncedSearch ? (
+      ) : items.length === 0 && !keyword ? (
         <EmptyState
           icon={<BookOpen size={48} />}
           title="还没有知识库"
           description="创建一个知识库开始使用 RAG，上传文档后 Agent 可以从中检索相关知识。"
           action={{ label: '创建知识库', onClick: openCreate }}
         />
-      ) : filtered.length === 0 ? (
+      ) : items.length === 0 ? (
         <EmptyState
           icon={<Search size={48} />}
           title="未找到匹配的知识库"
           description="尝试更换关键词搜索"
         />
       ) : (
-        <div className="knowledge-grid">
-          {filtered.map((kb, i) => (
-            <KnowledgeBaseCard
-              key={kb.id}
-              knowledgeBase={kb}
-              className="knowledge-grid-item"
-              style={{ animationDelay: `${i * 50}ms` }}
-              onOpen={(id) => navigate(`/knowledge/${id}`)}
-              onDelete={(id, name, documentCount) =>
-                setDeleteModal({ open: true, id, name, documentCount, isDeleting: false })
-              }
-            />
-          ))}
-          <button type="button" className="knowledge-create-card knowledge-grid-item" onClick={openCreate}>
-            <Plus size={24} className="knowledge-create-card__icon" />
-            <span className="knowledge-create-card__label">创建新知识库</span>
-          </button>
-        </div>
+        <>
+          <div className="knowledge-grid">
+            {items.map((kb, i) => (
+              <KnowledgeBaseCard
+                key={kb.id}
+                knowledgeBase={kb}
+                className="knowledge-grid-item"
+                style={{ animationDelay: `${i * 50}ms` }}
+                onOpen={(id) => navigate(`/knowledge/${id}`)}
+                onDelete={(id, name, documentCount) =>
+                  setDeleteModal({ open: true, id, name, documentCount, isDeleting: false })
+                }
+              />
+            ))}
+            <button type="button" className="knowledge-create-card knowledge-grid-item" onClick={openCreate}>
+              <Plus size={24} className="knowledge-create-card__icon" />
+              <span className="knowledge-create-card__label">创建新知识库</span>
+            </button>
+          </div>
+          <ListPagination page={page} pageSize={pageSize} total={total} onChange={setPage} />
+        </>
       )}
 
       <Modal
@@ -213,7 +182,7 @@ export default function KnowledgeListPage() {
               variant="primary"
               loading={isCreating}
               disabled={!createName.trim() || isCreating}
-              onClick={() => void handleCreate()}
+              onClick={() => void onCreate()}
             >
               创建
             </Button>
@@ -253,7 +222,7 @@ export default function KnowledgeListPage() {
         onClose={() =>
           setDeleteModal({ open: false, id: '', name: '', documentCount: 0, isDeleting: false })
         }
-        onConfirm={() => void handleDelete()}
+        onConfirm={() => void confirmDelete()}
         title="删除知识库"
         description={`确定要删除知识库「${deleteModal.name}」吗？该知识库中的所有文档和向量数据将被永久删除。`}
         warningText={

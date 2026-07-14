@@ -44,6 +44,8 @@ export const toolService = {
   getList: async (params?: {
     type?: ToolType;
     search?: string;
+    page?: number;
+    page_size?: number;
   }): Promise<ToolListResponse> => {
     const res = await http.get('/tools', { params });
     const tools = pickList<Tool>(res, ['tools', 'items', 'results']);

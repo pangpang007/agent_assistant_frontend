@@ -1,13 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Table, type Column } from '@/components/ui/Table';
 import { Tag } from '@/components/ui/Tag';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useLogStore } from '@/stores/logStore';
+import { handleApiError } from '@/utils/apiErrorHandler';
 import type { CenterLogEntry, CenterLogLevel } from '@/types/phase6';
 import { LogDetailDrawer } from './LogDetailDrawer';
+import { useLogListStore } from './store';
 import '@/styles/phase2.css';
 import '@/styles/phase6.css';
 
@@ -18,27 +19,32 @@ function levelColor(level: CenterLogLevel): 'primary' | 'warning' | 'danger' {
 }
 
 export default function LogCenterPage() {
-  const logs = useLogStore((s) => s.logs);
-  const total = useLogStore((s) => s.total);
-  const page = useLogStore((s) => s.page);
-  const pageSize = useLogStore((s) => s.pageSize);
-  const loading = useLogStore((s) => s.loading);
-  const filters = useLogStore((s) => s.filters);
-  const selected = useLogStore((s) => s.selected);
-  const setFilter = useLogStore((s) => s.setFilter);
-  const setPage = useLogStore((s) => s.setPage);
-  const selectLog = useLogStore((s) => s.selectLog);
-  const fetchLogs = useLogStore((s) => s.fetchLogs);
+  const items = useLogListStore((s) => s.items);
+  const total = useLogListStore((s) => s.total);
+  const page = useLogListStore((s) => s.page);
+  const pageSize = useLogListStore((s) => s.pageSize);
+  const loading = useLogListStore((s) => s.loading);
+  const keyword = useLogListStore((s) => s.keyword);
+  const levelFilter = useLogListStore((s) => s.levelFilter);
+  const selected = useLogListStore((s) => s.selected);
+  const fetch = useLogListStore((s) => s.fetch);
+  const setPage = useLogListStore((s) => s.setPage);
+  const setKeyword = useLogListStore((s) => s.setKeyword);
+  const setLevelFilter = useLogListStore((s) => s.setLevelFilter);
+  const selectLog = useLogListStore((s) => s.selectLog);
 
-  const debouncedKeyword = useDebounce(filters.keyword ?? '');
+  const [searchInput, setSearchInput] = useState(keyword);
+  const debouncedKeyword = useDebounce(searchInput);
 
   useEffect(() => {
-    setFilter({ keyword: debouncedKeyword || undefined });
-  }, [debouncedKeyword, setFilter]);
+    if (debouncedKeyword !== keyword) {
+      setKeyword(debouncedKeyword);
+    }
+  }, [debouncedKeyword, keyword, setKeyword]);
 
   useEffect(() => {
-    void fetchLogs();
-  }, [fetchLogs, page, filters.level, filters.keyword]);
+    void fetch().catch((error) => handleApiError(error, '加载日志'));
+  }, [fetch]);
 
   const columns: Column<CenterLogEntry>[] = [
     {
@@ -73,7 +79,15 @@ export default function LogCenterPage() {
       title: '消息',
       dataIndex: 'message',
       render: (v) => (
-        <span style={{ display: 'block', maxWidth: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span
+          style={{
+            display: 'block',
+            maxWidth: 400,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {String(v)}
         </span>
       ),
@@ -96,15 +110,15 @@ export default function LogCenterPage() {
             fullWidth
             leftIcon={<Search size={16} />}
             placeholder="搜索日志消息..."
-            value={filters.keyword ?? ''}
-            onChange={(e) => setFilter({ keyword: e.target.value })}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
         <select
           className="phase2-select"
-          value={filters.level ?? ''}
+          value={levelFilter ?? ''}
           onChange={(e) =>
-            setFilter({ level: (e.target.value as CenterLogLevel) || undefined })
+            setLevelFilter((e.target.value as CenterLogLevel) || null)
           }
         >
           <option value="">全部级别</option>
@@ -116,7 +130,7 @@ export default function LogCenterPage() {
 
       <Table
         columns={columns as unknown as Column<Record<string, unknown>>[]}
-        data={logs as unknown as Record<string, unknown>[]}
+        data={items as unknown as Record<string, unknown>[]}
         rowKey="id"
         loading={loading}
         emptyText="暂无日志"
