@@ -97,6 +97,31 @@ export type {
 } from './execution';
 
 export type {
+  TemplateCategory,
+  Template,
+  SaveAsTemplateRequest,
+  GetTemplatesParams,
+  VersionRecord,
+  DiffNode,
+  ModifiedDiffNode,
+  DiffEdge,
+  VersionDiff,
+  HistoryExecutionStatus,
+  HistoryExecution,
+  HistoryNodeResult,
+  HistoryExecutionLog,
+  HistoryExecutionDetail,
+  GetHistoryExecutionsParams,
+  CenterLogLevel,
+  CenterLogEntry,
+  CenterLogFilter,
+  EnvVarType,
+  EnvVariable,
+  EnvVarFormValues,
+  PaginatedResponse,
+} from './phase6';
+
+export type {
   NodeType,
   NodeExecutionStatus,
   WorkflowStatus,

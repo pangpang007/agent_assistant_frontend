@@ -8,8 +8,9 @@ import RegisterPage from '@/pages/Auth/RegisterPage';
 import DashboardPage from '@/pages/Dashboard/DashboardPage';
 import WorkflowListPage from '@/pages/Workflows/WorkflowListPage';
 import WorkflowEditorPage from '@/pages/Workflows/WorkflowEditorPage';
-import WorkflowTemplatePage from '@/pages/Workflows/WorkflowTemplatePage';
-import WorkflowHistoryPage from '@/pages/Workflows/WorkflowHistoryPage';
+import TemplateLibraryPage from '@/pages/Templates/TemplateLibraryPage';
+import ExecutionListPage from '@/pages/Executions/ExecutionListPage';
+import ExecutionDetailPage from '@/pages/Executions/ExecutionDetailPage';
 import AgentListPage from '@/pages/Agents/AgentListPage';
 import AgentFormPage from '@/pages/Agents/AgentFormPage';
 import AgentDetailPage from '@/pages/Agents/AgentDetailPage';
@@ -48,8 +49,11 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'workflows', element: <WorkflowListPage /> },
-          { path: 'workflows/templates', element: <WorkflowTemplatePage /> },
-          { path: 'workflows/history', element: <WorkflowHistoryPage /> },
+          { path: 'workflows/templates', element: <Navigate to="/templates" replace /> },
+          { path: 'workflows/history', element: <Navigate to="/executions" replace /> },
+          { path: 'templates', element: <TemplateLibraryPage /> },
+          { path: 'executions', element: <ExecutionListPage /> },
+          { path: 'executions/:id', element: <ExecutionDetailPage /> },
           { path: 'agents', element: <AgentListPage /> },
           { path: 'agents/create', element: <AgentFormPage /> },
           { path: 'agents/:id/edit', element: <AgentFormPage /> },

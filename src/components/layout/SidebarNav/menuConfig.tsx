@@ -2,7 +2,9 @@ import {
   BookOpen,
   Bot,
   GitBranch,
+  History,
   LayoutDashboard,
+  LayoutTemplate,
   ScrollText,
   Settings,
   Wrench,
@@ -24,9 +26,19 @@ export const menuConfig: MenuItemConfig[] = [
     children: [
       { key: 'workflow-list', label: '列表', path: '/workflows' },
       { key: 'workflow-editor', label: '编辑器', path: '/workflows/new' },
-      { key: 'workflow-templates', label: '模板', path: '/workflows/templates' },
-      { key: 'workflow-history', label: '历史', path: '/workflows/history' },
     ],
+  },
+  {
+    key: 'templates',
+    label: '模板库',
+    icon: <LayoutTemplate size={16} strokeWidth={1.5} />,
+    path: '/templates',
+  },
+  {
+    key: 'executions',
+    label: '执行历史',
+    icon: <History size={16} strokeWidth={1.5} />,
+    path: '/executions',
   },
   {
     key: 'agents',
@@ -69,9 +81,9 @@ export const menuConfig: MenuItemConfig[] = [
 export function getActiveMenuKey(pathname: string): string {
   if (pathname === '/') return 'dashboard';
   if (pathname.startsWith('/workflows/new')) return 'workflow-editor';
-  if (pathname.startsWith('/workflows/templates')) return 'workflow-templates';
-  if (pathname.startsWith('/workflows/history')) return 'workflow-history';
   if (pathname.startsWith('/workflows')) return 'workflow-list';
+  if (pathname.startsWith('/templates')) return 'templates';
+  if (pathname.startsWith('/executions')) return 'executions';
   if (pathname.startsWith('/agents')) return 'agents';
   if (pathname.startsWith('/knowledge')) return 'knowledge';
   if (pathname.startsWith('/tools')) return 'tools';

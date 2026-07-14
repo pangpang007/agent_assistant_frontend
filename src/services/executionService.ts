@@ -1,4 +1,5 @@
 import http from '@/lib/axios';
+import { pickList } from '@/lib/arrayUtils';
 import type {
   ExecutionDetail,
   ExecutionListParams,
@@ -8,6 +9,40 @@ import type {
   StartExecutionResponse,
   SubmitReviewRequest,
 } from '@/types/execution';
+import type {
+  GetHistoryExecutionsParams,
+  HistoryExecution,
+  HistoryExecutionDetail,
+  PaginatedResponse,
+} from '@/types/phase6';
+
+function normalizeHistoryPage(
+  res: unknown,
+  page = 1,
+  pageSize = 20,
+): PaginatedResponse<HistoryExecution> {
+  if (Array.isArray(res)) {
+    return {
+      data: res as HistoryExecution[],
+      total: res.length,
+      page,
+      page_size: pageSize,
+      has_more: false,
+    };
+  }
+  const obj = (res ?? {}) as Record<string, unknown>;
+  const data = pickList<HistoryExecution>(res, ['data', 'items', 'results', 'executions']);
+  const total = Number(obj.total ?? data.length);
+  const currentPage = Number(obj.page ?? page);
+  const size = Number(obj.page_size ?? obj.pageSize ?? pageSize);
+  return {
+    data,
+    total,
+    page: currentPage,
+    page_size: size,
+    has_more: Boolean(obj.has_more ?? currentPage * size < total),
+  };
+}
 
 export const executionService = {
   /** POST /workflows/:workflowId/run */
@@ -62,5 +97,23 @@ export const executionService = {
     const res = await http.get(`/executions/${executionId}/logs`);
     if (Array.isArray(res)) return { logs: res };
     return (res as unknown as { logs: Array<Omit<LogEntry, 'id'> & { id?: string }> }) ?? { logs: [] };
+  },
+
+  /** Phase 6 — execution history list */
+  getHistoryList: async (
+    params?: GetHistoryExecutionsParams,
+  ): Promise<PaginatedResponse<HistoryExecution>> => {
+    const res = await http.get('/executions', { params });
+    return normalizeHistoryPage(res, params?.page, params?.page_size);
+  },
+
+  /** Phase 6 — execution history detail (nodes + logs + optional snapshot) */
+  getHistoryDetail: async (id: string): Promise<HistoryExecutionDetail> => {
+    const res = (await http.get(`/executions/${id}`)) as HistoryExecutionDetail;
+    return {
+      ...res,
+      nodes: pickList(res, ['nodes', 'node_results']) as HistoryExecutionDetail['nodes'],
+      logs: pickList(res, ['logs']) as HistoryExecutionDetail['logs'],
+    };
   },
 };

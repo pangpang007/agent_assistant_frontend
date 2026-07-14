@@ -34,7 +34,7 @@ describe('Placeholder pages (Phase 0)', () => {
     expect(screen.getByRole('heading', { name: '运行历史' })).toBeInTheDocument();
   });
 
-  it('LogCenterPage', () => {
+  it('LogCenterPage renders log center heading', () => {
     renderAtRoute(<LogCenterPage />, { path: '/logs', route: '/logs' });
     expect(screen.getByRole('heading', { name: '日志中心' })).toBeInTheDocument();
   });

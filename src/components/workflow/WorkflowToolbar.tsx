@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   Download,
+  History,
   LayoutGrid,
+  LayoutTemplate,
   Play,
   Redo2,
   Save,
@@ -27,9 +29,18 @@ interface WorkflowToolbarProps {
   onRun: (inputs: Record<string, unknown>) => Promise<void>;
   onStop: () => Promise<void>;
   onLoadVersion: (version: number) => Promise<void>;
+  onToggleVersionSidebar?: () => void;
+  onOpenSaveAsTemplate?: () => void;
 }
 
-export function WorkflowToolbar({ onSave, onRun, onStop, onLoadVersion }: WorkflowToolbarProps) {
+export function WorkflowToolbar({
+  onSave,
+  onRun,
+  onStop,
+  onLoadVersion,
+  onToggleVersionSidebar,
+  onOpenSaveAsTemplate,
+}: WorkflowToolbarProps) {
   const navigate = useNavigate();
   const { success, error: toastError } = useToast();
 
@@ -170,6 +181,24 @@ export function WorkflowToolbar({ onSave, onRun, onStop, onLoadVersion }: Workfl
         </Button>
         <Button variant="ghost" size="sm" leftIcon={<Download size={16} />} onClick={() => void handleExport()}>
           导出
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          leftIcon={<LayoutTemplate size={16} />}
+          disabled={!workflowId || executing}
+          onClick={onOpenSaveAsTemplate}
+        >
+          另存为模板
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          leftIcon={<History size={16} />}
+          disabled={!workflowId || executing}
+          onClick={onToggleVersionSidebar}
+        >
+          版本历史
         </Button>
 
         <div className="workflow-toolbar__divider" />

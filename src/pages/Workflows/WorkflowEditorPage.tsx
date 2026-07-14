@@ -10,7 +10,9 @@ import { RightPanelContainer } from '@/components/workflow/RightPanelContainer';
 import { RunConfigModal } from '@/components/workflow/execution/RunConfigModal';
 import { WorkflowCanvas } from '@/components/workflow/WorkflowCanvas';
 import { WorkflowStatusBar } from '@/components/workflow/WorkflowStatusBar';
+import { VersionSidebar } from '@/components/workflow/VersionSidebar';
 import { WorkflowToolbar } from '@/components/workflow/WorkflowToolbar';
+import { SaveAsTemplateModal } from '@/pages/Templates/SaveAsTemplateModal';
 import { useExecutionMessageHandler } from '@/hooks/useExecutionMessageHandler';
 import { useExecutionStore } from '@/stores/executionStore';
 import { useExecutionTimer } from '@/hooks/useExecutionTimer';
@@ -44,6 +46,7 @@ export default function WorkflowEditorPage() {
   const edges = useWorkflowEditorStore((s) => s.edges);
   const workflowId = useWorkflowEditorStore((s) => s.workflowId);
   const workflowName = useWorkflowEditorStore((s) => s.workflowName);
+  const currentVersionNumber = useWorkflowEditorStore((s) => s.currentVersionNumber);
   const isDirty = useWorkflowEditorStore((s) => s.isDirty);
   const markSaved = useWorkflowEditorStore((s) => s.markSaved);
   const runValidation = useWorkflowEditorStore((s) => s.runValidation);
@@ -64,6 +67,8 @@ export default function WorkflowEditorPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [retryOpen, setRetryOpen] = useState(false);
+  const [versionSidebarOpen, setVersionSidebarOpen] = useState(false);
+  const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
 
   const handleMessage = useExecutionMessageHandler();
   const timerActive =
@@ -334,16 +339,27 @@ export default function WorkflowEditorPage() {
         onRun={handleRun}
         onStop={handleStop}
         onLoadVersion={handleLoadVersion}
+        onToggleVersionSidebar={() => setVersionSidebarOpen((v) => !v)}
+        onOpenSaveAsTemplate={() => setSaveAsTemplateOpen(true)}
       />
       <div className="workflow-editor__body">
         <NodeLibrary />
         <WorkflowCanvas />
-        <RightPanelContainer
-          onRetry={handleRetry}
-          onStop={handleStop}
-          sendReview={sendReview}
-          wsSend={wsSend}
-        />
+        {versionSidebarOpen && workflowId ? (
+          <VersionSidebar
+            open={versionSidebarOpen}
+            onClose={() => setVersionSidebarOpen(false)}
+            workflowId={workflowId}
+            currentVersionNumber={currentVersionNumber}
+          />
+        ) : (
+          <RightPanelContainer
+            onRetry={handleRetry}
+            onStop={handleStop}
+            sendReview={sendReview}
+            wsSend={wsSend}
+          />
+        )}
       </div>
       <WorkflowStatusBar />
       <ContextMenu />
@@ -357,6 +373,15 @@ export default function WorkflowEditorPage() {
           await handleRun(values);
         }}
       />
+
+      {workflowId ? (
+        <SaveAsTemplateModal
+          open={saveAsTemplateOpen}
+          onClose={() => setSaveAsTemplateOpen(false)}
+          workflowId={workflowId}
+          defaultName={workflowName}
+        />
+      ) : null}
 
       {blocker.state === 'blocked' ? (
         <Modal open onClose={() => blocker.reset?.()} title="未保存的更改" size="sm">
