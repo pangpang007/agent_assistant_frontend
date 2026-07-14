@@ -15,6 +15,11 @@
   box-shadow: var(--shadow-focus);
 }
 
+.base-node--pending {
+  opacity: 0.65;
+  border-color: var(--border-muted);
+}
+
 .base-node--running {
   border-color: var(--accent-primary);
   animation: base-node-pulse 1.5s ease-in-out infinite;
@@ -85,6 +90,10 @@
   height: 8px;
   border-radius: var(--radius-full);
   flex-shrink: 0;
+}
+
+.base-node__status--pending {
+  background: var(--text-tertiary);
 }
 
 .base-node__status--running {

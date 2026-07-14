@@ -1,0 +1,81 @@
+@keyframes exec-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--accent-primary-subtle);
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--accent-primary-subtle);
+  }
+}
+
+@keyframes exec-item-pulse {
+  0%,
+  100% {
+    border-left-color: var(--accent-primary);
+  }
+  50% {
+    border-left-color: transparent;
+  }
+}
+
+@keyframes exec-waiting {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes exec-edge-flow {
+  from {
+    stroke-dashoffset: 12;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes exec-cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.exec-animate-pulse {
+  animation: exec-pulse 1.5s ease-in-out infinite;
+}
+
+.exec-animate-waiting {
+  animation: exec-waiting 2s ease-in-out infinite;
+}
+
+.exec-animate-item-pulse {
+  animation: exec-item-pulse 1.5s ease-in-out infinite;
+}
+
+.exec-edge-flowing {
+  stroke: var(--accent-primary);
+  stroke-width: 2.5;
+  stroke-dasharray: 8 4;
+  animation: exec-edge-flow 1s linear infinite;
+}
+
+.exec-edge-active {
+  stroke: var(--accent-success);
+  stroke-width: 2.5;
+}
+
+.exec-edge-idle {
+  stroke: var(--border-default);
+  stroke-width: 1.5;
+}
+
+.exec-cursor-blink {
+  animation: exec-cursor-blink 1s step-end infinite;
+}

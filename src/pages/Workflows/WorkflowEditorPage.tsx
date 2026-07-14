@@ -6,17 +6,24 @@ import { Skeleton } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/Toast';
 import { ContextMenu } from '@/components/workflow/ContextMenu';
 import { NodeLibrary } from '@/components/workflow/NodeLibrary';
-import { PropertiesPanel } from '@/components/workflow/PropertiesPanel';
+import { RightPanelContainer } from '@/components/workflow/RightPanelContainer';
+import { RunConfigModal } from '@/components/workflow/execution/RunConfigModal';
 import { WorkflowCanvas } from '@/components/workflow/WorkflowCanvas';
 import { WorkflowStatusBar } from '@/components/workflow/WorkflowStatusBar';
 import { WorkflowToolbar } from '@/components/workflow/WorkflowToolbar';
+import { useExecutionMessageHandler } from '@/hooks/useExecutionMessageHandler';
+import { useExecutionStore } from '@/stores/executionStore';
+import { useExecutionTimer } from '@/hooks/useExecutionTimer';
+import { useExecutionWebSocket } from '@/hooks/useExecutionWebSocket';
 import { useWorkflowShortcuts } from '@/hooks/useWorkflowShortcuts';
-import { useWorkflowWebSocket } from '@/hooks/useWorkflowWebSocket';
 import { getApiErrorMessage, getApiErrorStatus } from '@/lib/validation';
+import { executionService } from '@/services/executionService';
 import { workflowService } from '@/services/workflowService';
 import { useWorkflowEditorStore } from '@/stores/workflowEditorStore';
+import type { WSClientMessage, WSReviewActionMessage } from '@/types/execution';
 import type { Workflow } from '@/types';
 import '@/styles/workflow.css';
+import '@/styles/execution-animations.css';
 
 function resolveWorkflowId(raw: Workflow | Record<string, unknown>): string | null {
   const candidates = [raw.id, (raw as { workflow_id?: string }).workflow_id];
@@ -32,21 +39,43 @@ export default function WorkflowEditorPage() {
   const { success, error: toastError, warning: toastWarning } = useToast();
 
   const loadFromWorkflow = useWorkflowEditorStore((s) => s.loadFromWorkflow);
-  const reset = useWorkflowEditorStore((s) => s.reset);
+  const resetEditor = useWorkflowEditorStore((s) => s.reset);
   const nodes = useWorkflowEditorStore((s) => s.nodes);
   const edges = useWorkflowEditorStore((s) => s.edges);
   const workflowId = useWorkflowEditorStore((s) => s.workflowId);
+  const workflowName = useWorkflowEditorStore((s) => s.workflowName);
   const isDirty = useWorkflowEditorStore((s) => s.isDirty);
   const markSaved = useWorkflowEditorStore((s) => s.markSaved);
   const runValidation = useWorkflowEditorStore((s) => s.runValidation);
   const setVersions = useWorkflowEditorStore((s) => s.setVersions);
   const setExecutionId = useWorkflowEditorStore((s) => s.setExecutionId);
-  const executionId = useWorkflowEditorStore((s) => s.executionId);
+  const setExecutionStatus = useWorkflowEditorStore((s) => s.setExecutionStatus);
+  const setRightPanel = useWorkflowEditorStore((s) => s.setRightPanel);
+  const initNodeStates = useExecutionStore((s) => s.initNodeStates);
+  const resetExecution = useExecutionStore((s) => s.reset);
+  const executionId = useExecutionStore((s) => s.executionId);
+  const executionStatus = useExecutionStore((s) => s.status);
+  const setExecutionStoreStatus = useExecutionStore((s) => s.setStatus);
+  const setExecutionStoreId = useExecutionStore((s) => s.setExecutionId);
+  const setWorkflowMeta = useExecutionStore((s) => s.setWorkflowMeta);
+  const setInputValues = useExecutionStore((s) => s.setInputValues);
+  const setWsConnectionStatus = useExecutionStore((s) => s.setWsConnectionStatus);
   const pushHistory = useWorkflowEditorStore((s) => s.pushHistory);
 
   const [isLoading, setIsLoading] = useState(true);
+  const [retryOpen, setRetryOpen] = useState(false);
 
-  useWorkflowWebSocket(executionId);
+  const handleMessage = useExecutionMessageHandler();
+  const timerActive =
+    executionStatus === 'running' || executionStatus === 'waiting_review' || executionStatus === 'connecting';
+  useExecutionTimer(timerActive);
+
+  const { send: wsSend } = useExecutionWebSocket({
+    executionId,
+    onMessage: handleMessage,
+    onStatusChange: setWsConnectionStatus,
+    autoConnect: Boolean(executionId),
+  });
 
   const handleSave = useCallback(async () => {
     if (!workflowId) return;
@@ -123,7 +152,6 @@ export default function WorkflowEditorPage() {
     let cancelled = false;
 
     if (id === 'new') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- create bootstrap loading state
       setIsLoading(true);
       workflowService
         .create({ name: '未命名工作流' })
@@ -146,14 +174,16 @@ export default function WorkflowEditorPage() {
       };
     }
 
-    reset();
+    resetEditor();
+    resetExecution();
     void loadWorkflow(id);
 
     return () => {
       cancelled = true;
-      reset();
+      resetEditor();
+      resetExecution();
     };
-  }, [id, loadWorkflow, navigate, reset, toastError]);
+  }, [id, loadWorkflow, navigate, resetEditor, resetExecution, toastError]);
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -168,19 +198,89 @@ export default function WorkflowEditorPage() {
 
   const blocker = useBlocker(isDirty);
 
-  const handleRun = useCallback(
+  const startExecutionFlow = useCallback(
     async (inputs: Record<string, unknown>) => {
       if (!workflowId) return;
+
+      initNodeStates(
+        nodes.map((n) => ({
+          id: n.id,
+          name: n.data.label,
+          type: n.data.nodeType,
+        })),
+      );
+      setWorkflowMeta(workflowId, workflowName);
+      setInputValues(inputs);
+      setExecutionStoreStatus('connecting');
+
+      const res = await executionService.startExecution({
+        workflowId,
+        inputValues: inputs,
+      });
+
+      setExecutionStoreId(res.executionId);
+      setExecutionId(res.executionId);
+      setExecutionStatus('running');
+      setExecutionStoreStatus('running');
+      setRightPanel('execution');
+      success('工作流已开始运行');
+    },
+    [
+      initNodeStates,
+      nodes,
+      setExecutionId,
+      setExecutionStatus,
+      setExecutionStoreId,
+      setExecutionStoreStatus,
+      setInputValues,
+      setRightPanel,
+      setWorkflowMeta,
+      success,
+      workflowId,
+      workflowName,
+    ],
+  );
+
+  const handleRun = useCallback(
+    async (inputs: Record<string, unknown>) => {
       try {
-        const res = await workflowService.run(workflowId, { inputs });
-        setExecutionId(res.executionId);
-        success('工作流已开始运行');
+        await startExecutionFlow(inputs);
       } catch {
+        resetExecution();
+        setExecutionStatus('idle');
+        setExecutionId(null);
         toastError('运行失败');
       }
     },
-    [setExecutionId, success, toastError, workflowId],
+    [resetExecution, setExecutionId, setExecutionStatus, startExecutionFlow, toastError],
   );
+
+  const handleStop = useCallback(async () => {
+    if (!executionId) return;
+    try {
+      wsSend({
+        type: 'stop_execution',
+        data: { executionId },
+      } satisfies WSClientMessage);
+      await executionService.stopExecution(executionId);
+      useExecutionStore.getState().setStopped();
+      setExecutionStatus('failed');
+      success('执行已停止');
+    } catch {
+      toastError('停止执行失败');
+    }
+  }, [executionId, setExecutionStatus, success, toastError, wsSend]);
+
+  const sendReview = useCallback(
+    (message: WSReviewActionMessage) => {
+      wsSend(message);
+    },
+    [wsSend],
+  );
+
+  const handleRetry = useCallback(() => {
+    setRetryOpen(true);
+  }, []);
 
   const handleLoadVersion = useCallback(
     async (version: number) => {
@@ -204,6 +304,16 @@ export default function WorkflowEditorPage() {
     [loadFromWorkflow, pushHistory, success, toastError, workflowId],
   );
 
+  const startNode = nodes.find((n) => n.type === 'start');
+  const retryInputVariables =
+    (startNode?.data.config.inputVariables as {
+      name: string;
+      type: string;
+      required?: boolean;
+      description?: string;
+      default?: string;
+    }[]) ?? [];
+
   if (isLoading || id === 'new') {
     return (
       <div className="workflow-editor workflow-editor--loading">
@@ -222,15 +332,31 @@ export default function WorkflowEditorPage() {
       <WorkflowToolbar
         onSave={handleSave}
         onRun={handleRun}
+        onStop={handleStop}
         onLoadVersion={handleLoadVersion}
       />
       <div className="workflow-editor__body">
         <NodeLibrary />
         <WorkflowCanvas />
-        <PropertiesPanel />
+        <RightPanelContainer
+          onRetry={handleRetry}
+          onStop={handleStop}
+          sendReview={sendReview}
+          wsSend={wsSend}
+        />
       </div>
       <WorkflowStatusBar />
       <ContextMenu />
+
+      <RunConfigModal
+        open={retryOpen}
+        onClose={() => setRetryOpen(false)}
+        inputVariables={retryInputVariables}
+        onStart={async (values) => {
+          resetExecution();
+          await handleRun(values);
+        }}
+      />
 
       {blocker.state === 'blocked' ? (
         <Modal open onClose={() => blocker.reset?.()} title="未保存的更改" size="sm">

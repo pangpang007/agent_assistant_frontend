@@ -27,6 +27,8 @@ export interface BaseNodeShellProps {
 
 function statusClass(status?: NodeExecutionStatus): string {
   switch (status) {
+    case 'pending':
+      return 'base-node--pending';
     case 'running':
       return 'base-node--running';
     case 'success':
@@ -44,6 +46,8 @@ function statusClass(status?: NodeExecutionStatus): string {
 
 function statusDotClass(status?: NodeExecutionStatus): string | undefined {
   switch (status) {
+    case 'pending':
+      return 'base-node__status--pending';
     case 'running':
       return 'base-node__status--running';
     case 'success':

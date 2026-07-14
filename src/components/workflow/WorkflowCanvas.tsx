@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -11,6 +11,8 @@ import {
   type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { executionEdgeTypes } from '@/components/workflow/edges/ExecutionEdge';
+import { isExecutionActive, useExecutionStore } from '@/stores/executionStore';
 import { useWorkflowEditorStore } from '@/stores/workflowEditorStore';
 import { getNodeGroupColor } from '@/lib/workflow/nodeDefaults';
 import { nodeTypes } from './nodes';
@@ -21,6 +23,14 @@ const defaultEdgeOptions = {
   animated: false,
   style: {
     stroke: 'var(--border-default)',
+    strokeWidth: 2,
+  },
+};
+
+const executionDefaultEdgeOptions = {
+  type: 'execution' as const,
+  animated: false,
+  style: {
     strokeWidth: 2,
   },
 };
@@ -42,13 +52,32 @@ function CanvasInner() {
   const openContextMenu = useWorkflowEditorStore((s) => s.openContextMenu);
   const closeContextMenu = useWorkflowEditorStore((s) => s.closeContextMenu);
 
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-  }, []);
+  const executionStatus = useExecutionStore((s) => s.status);
+  const executing = isExecutionActive(executionStatus);
+
+  const flowEdges = useMemo(
+    () =>
+      executing
+        ? edges.map((edge) => ({
+            ...edge,
+            type: 'execution',
+          }))
+        : edges,
+    [edges, executing],
+  );
+
+  const onDragOver = useCallback(
+    (event: React.DragEvent) => {
+      if (executing) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+    },
+    [executing],
+  );
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
+      if (executing) return;
       event.preventDefault();
       const nodeType = event.dataTransfer.getData('application/reactflow-type') as NodeType;
       if (!nodeType) return;
@@ -61,16 +90,18 @@ function CanvasInner() {
       addNodeByType(nodeType, position);
       pushHistory();
     },
-    [addNodeByType, pushHistory, screenToFlowPosition],
+    [addNodeByType, executing, pushHistory, screenToFlowPosition],
   );
 
   const onNodeClick: NodeMouseHandler = useCallback(
     (_event, node) => {
       closeContextMenu();
       selectNode(node.id);
-      setRightPanel('properties');
+      if (!executing) {
+        setRightPanel('properties');
+      }
     },
-    [closeContextMenu, selectNode, setRightPanel],
+    [closeContextMenu, executing, selectNode, setRightPanel],
   );
 
   const onPaneClick = useCallback(() => {
@@ -81,17 +112,19 @@ function CanvasInner() {
 
   const onNodeContextMenu: NodeMouseHandler = useCallback(
     (event, node) => {
+      if (executing) return;
       event.preventDefault();
       openContextMenu(event.clientX, event.clientY, node.id, null);
     },
-    [openContextMenu],
+    [executing, openContextMenu],
   );
 
   const onEdgeClick = useCallback(
     (_event: React.MouseEvent, edge: { id: string }) => {
+      if (executing) return;
       selectEdge(edge.id);
     },
-    [selectEdge],
+    [executing, selectEdge],
   );
 
   return (
@@ -101,14 +134,18 @@ function CanvasInner() {
       ) : null}
       <ReactFlow
         nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={(connection) => {
-          if (connection.source === connection.target) return;
-          onConnect(connection);
-          pushHistory();
-        }}
+        edges={flowEdges}
+        onNodesChange={executing ? undefined : onNodesChange}
+        onEdgesChange={executing ? undefined : onEdgesChange}
+        onConnect={
+          executing
+            ? undefined
+            : (connection) => {
+                if (connection.source === connection.target) return;
+                onConnect(connection);
+                pushHistory();
+              }
+        }
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         onNodeContextMenu={onNodeContextMenu}
@@ -116,12 +153,16 @@ function CanvasInner() {
         onDrop={onDrop}
         onDragOver={onDragOver}
         nodeTypes={nodeTypes}
-        defaultEdgeOptions={defaultEdgeOptions}
+        edgeTypes={executionEdgeTypes}
+        defaultEdgeOptions={executing ? executionDefaultEdgeOptions : defaultEdgeOptions}
+        nodesDraggable={!executing}
+        nodesConnectable={!executing}
+        elementsSelectable={!executing}
         fitView
         snapToGrid
         snapGrid={[20, 20]}
         proOptions={{ hideAttribution: true }}
-        deleteKeyCode="Delete"
+        deleteKeyCode={executing ? null : 'Delete'}
         multiSelectionKeyCode="Shift"
         panOnScroll={false}
         zoomOnScroll

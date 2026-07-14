@@ -17,6 +17,7 @@
 | [phase2/](./phase2/) | 已完成 | Agent 管理、工具管理、模型管理 |
 | [phase3/](./phase3/) | 已完成 | 知识库管理（RAG） |
 | [phase4/](./phase4/) | 已完成 | 工作流编辑器（React Flow） |
+| [phase5/](./phase5/) | 已完成 | 工作流执行引擎（运行 / WebSocket / 审核） |
 
 ## 目录规范
 

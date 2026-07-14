@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -7,14 +7,17 @@ import {
   Play,
   Redo2,
   Save,
+  Square,
   Undo2,
   Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
+import { RunConfigModal } from '@/components/workflow/execution/RunConfigModal';
+import { StopConfirmModal } from '@/components/workflow/execution/StopConfirmModal';
 import { workflowService } from '@/services/workflowService';
+import { isExecutionActive, useExecutionStore } from '@/stores/executionStore';
 import { useWorkflowEditorStore } from '@/stores/workflowEditorStore';
 import { ImportModal } from './ImportModal';
 import { VersionSelector } from './VersionSelector';
@@ -22,10 +25,11 @@ import { VersionSelector } from './VersionSelector';
 interface WorkflowToolbarProps {
   onSave: () => Promise<void>;
   onRun: (inputs: Record<string, unknown>) => Promise<void>;
+  onStop: () => Promise<void>;
   onLoadVersion: (version: number) => Promise<void>;
 }
 
-export function WorkflowToolbar({ onSave, onRun, onLoadVersion }: WorkflowToolbarProps) {
+export function WorkflowToolbar({ onSave, onRun, onStop, onLoadVersion }: WorkflowToolbarProps) {
   const navigate = useNavigate();
   const { success, error: toastError } = useToast();
 
@@ -42,17 +46,37 @@ export function WorkflowToolbar({ onSave, onRun, onLoadVersion }: WorkflowToolba
   const pushHistory = useWorkflowEditorStore((s) => s.pushHistory);
   const setRightPanel = useWorkflowEditorStore((s) => s.setRightPanel);
   const updateWorkflowName = useWorkflowEditorStore((s) => s.setWorkflowMeta);
+  const runValidation = useWorkflowEditorStore((s) => s.runValidation);
+  const validationIssues = useWorkflowEditorStore((s) => s.validationIssues);
+
+  const executionStatus = useExecutionStore((s) => s.status);
+  const executing = isExecutionActive(executionStatus);
 
   const [nameEditing, setNameEditing] = useState(false);
   const [nameValue, setNameValue] = useState(workflowName);
   const [importOpen, setImportOpen] = useState(false);
   const [runOpen, setRunOpen] = useState(false);
-  const [runInputs, setRunInputs] = useState<Record<string, string>>({});
-  const [isRunning, setIsRunning] = useState(false);
+  const [stopOpen, setStopOpen] = useState(false);
+  const [stopLoading, setStopLoading] = useState(false);
 
   const startNode = nodes.find((n) => n.type === 'start');
-  const inputVariables =
-    (startNode?.data.config.inputVariables as { name: string; type: string }[]) ?? [];
+  const inputVariables = useMemo(() => {
+    const raw =
+      (startNode?.data.config.inputVariables as {
+        name: string;
+        type: string;
+        required?: boolean;
+        description?: string;
+        default?: string;
+      }[]) ?? [];
+    return raw;
+  }, [startNode]);
+
+  const validationErrors = useMemo(
+    () => validationIssues.filter((i) => i.level === 'error'),
+    [validationIssues],
+  );
+  const runDisabled = validationErrors.length > 0;
 
   const handleExport = async () => {
     if (!workflowId) return;
@@ -72,22 +96,27 @@ export function WorkflowToolbar({ onSave, onRun, onLoadVersion }: WorkflowToolba
   };
 
   const openRunModal = () => {
-    const defaults: Record<string, string> = {};
-    inputVariables.forEach((v) => {
-      defaults[v.name] = '';
-    });
-    setRunInputs(defaults);
+    const issues = runValidation();
+    const errors = issues.filter((i) => i.level === 'error');
+    if (errors.length > 0) {
+      toastError(`校验失败：${errors[0].message}`);
+      return;
+    }
     setRunOpen(true);
   };
 
-  const handleRun = async () => {
-    setIsRunning(true);
+  const handleRun = async (inputs: Record<string, unknown>) => {
+    await onRun(inputs);
+    setRightPanel('execution');
+  };
+
+  const handleStop = async () => {
+    setStopLoading(true);
     try {
-      await onRun(runInputs);
-      setRunOpen(false);
-      setRightPanel('execution');
+      await onStop();
+      setStopOpen(false);
     } finally {
-      setIsRunning(false);
+      setStopLoading(false);
     }
   };
 
@@ -149,7 +178,7 @@ export function WorkflowToolbar({ onSave, onRun, onLoadVersion }: WorkflowToolba
           variant="ghost"
           size="sm"
           leftIcon={<Undo2 size={16} />}
-          disabled={!canUndo()}
+          disabled={!canUndo() || executing}
           onClick={undo}
           aria-label="撤销"
         >
@@ -159,7 +188,7 @@ export function WorkflowToolbar({ onSave, onRun, onLoadVersion }: WorkflowToolba
           variant="ghost"
           size="sm"
           leftIcon={<Redo2 size={16} />}
-          disabled={!canRedo()}
+          disabled={!canRedo() || executing}
           onClick={redo}
           aria-label="重做"
         >
@@ -169,6 +198,7 @@ export function WorkflowToolbar({ onSave, onRun, onLoadVersion }: WorkflowToolba
           variant="ghost"
           size="sm"
           leftIcon={<LayoutGrid size={16} />}
+          disabled={executing}
           onClick={() => {
             applyAutoLayout();
             pushHistory();
@@ -184,6 +214,7 @@ export function WorkflowToolbar({ onSave, onRun, onLoadVersion }: WorkflowToolba
           size="sm"
           leftIcon={<Save size={16} />}
           loading={isSaving}
+          disabled={executing}
           onClick={() => void onSave()}
         >
           保存{isDirty ? ' •' : ''}
@@ -192,43 +223,46 @@ export function WorkflowToolbar({ onSave, onRun, onLoadVersion }: WorkflowToolba
           variant="secondary"
           size="sm"
           leftIcon={<Play size={16} />}
+          disabled={executing}
           onClick={() => setRightPanel('debug')}
         >
           测试
         </Button>
-        <Button variant="primary" size="sm" leftIcon={<Play size={16} />} onClick={openRunModal}>
-          运行
-        </Button>
+        {executing ? (
+          <Button variant="danger" size="sm" leftIcon={<Square size={16} />} onClick={() => setStopOpen(true)}>
+            停止
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Play size={16} />}
+            disabled={runDisabled}
+            title={runDisabled ? validationErrors[0]?.message : undefined}
+            onClick={openRunModal}
+          >
+            运行
+          </Button>
+        )}
 
         <VersionSelector onSelectVersion={(v) => void onLoadVersion(v)} />
       </header>
 
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} />
 
-      <Modal open={runOpen} onClose={() => setRunOpen(false)} title="运行工作流" size="md">
-        {inputVariables.length === 0 ? (
-          <p className="workflow-run-modal__hint">开始节点未定义输入变量，将直接运行。</p>
-        ) : (
-          inputVariables.map((v) => (
-            <div key={v.name} className="panel-field">
-              <label className="panel-field__label">{v.name}</label>
-              <Input
-                size="sm"
-                value={runInputs[v.name] ?? ''}
-                onChange={(e) => setRunInputs((prev) => ({ ...prev, [v.name]: e.target.value }))}
-              />
-            </div>
-          ))
-        )}
-        <div className="workflow-run-modal__actions">
-          <Button variant="ghost" onClick={() => setRunOpen(false)}>
-            取消
-          </Button>
-          <Button variant="primary" loading={isRunning} onClick={() => void handleRun()}>
-            运行
-          </Button>
-        </div>
-      </Modal>
+      <RunConfigModal
+        open={runOpen}
+        onClose={() => setRunOpen(false)}
+        inputVariables={inputVariables}
+        onStart={handleRun}
+      />
+
+      <StopConfirmModal
+        open={stopOpen}
+        onClose={() => setStopOpen(false)}
+        onConfirm={handleStop}
+        loading={stopLoading}
+      />
     </>
   );
 }

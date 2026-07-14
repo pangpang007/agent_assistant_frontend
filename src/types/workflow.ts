@@ -19,6 +19,7 @@ export type NodeType =
   | 'httpRequest';
 
 export type NodeExecutionStatus =
+  | 'pending'
   | 'idle'
   | 'running'
   | 'success'
