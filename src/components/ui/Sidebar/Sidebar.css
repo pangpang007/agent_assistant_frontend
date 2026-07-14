@@ -47,7 +47,18 @@
 
 .menu-item--collapsed {
   justify-content: center;
+  gap: 0;
   padding: 0;
+  width: 100%;
+}
+
+.menu-item--collapsed .menu-item__icon {
+  margin: 0 auto;
+}
+
+.menu-item__tooltip-wrap.menu-item__tooltip-wrap--collapsed {
+  display: block;
+  width: 100%;
 }
 
 .menu-item--nested {

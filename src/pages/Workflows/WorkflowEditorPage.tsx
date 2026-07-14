@@ -12,10 +12,19 @@ import { WorkflowStatusBar } from '@/components/workflow/WorkflowStatusBar';
 import { WorkflowToolbar } from '@/components/workflow/WorkflowToolbar';
 import { useWorkflowShortcuts } from '@/hooks/useWorkflowShortcuts';
 import { useWorkflowWebSocket } from '@/hooks/useWorkflowWebSocket';
-import { getApiErrorStatus } from '@/lib/validation';
+import { getApiErrorMessage, getApiErrorStatus } from '@/lib/validation';
 import { workflowService } from '@/services/workflowService';
 import { useWorkflowEditorStore } from '@/stores/workflowEditorStore';
+import type { Workflow } from '@/types';
 import '@/styles/workflow.css';
+
+function resolveWorkflowId(raw: Workflow | Record<string, unknown>): string | null {
+  const candidates = [raw.id, (raw as { workflow_id?: string }).workflow_id];
+  for (const value of candidates) {
+    if (typeof value === 'string' && value.trim()) return value;
+  }
+  return null;
+}
 
 export default function WorkflowEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -54,7 +63,11 @@ export default function WorkflowEditorPage() {
     try {
       const res = await workflowService.save(workflowId, { nodes, edges });
       markSaved(new Date().toISOString(), res.version.version);
-      setVersions(await workflowService.getVersions(workflowId));
+      try {
+        setVersions(await workflowService.getVersions(workflowId));
+      } catch {
+        // versions are optional after save
+      }
       success('保存成功');
     } catch {
       toastError('保存失败，请重试');
@@ -69,23 +82,29 @@ export default function WorkflowEditorPage() {
       setIsLoading(true);
       try {
         const workflow = await workflowService.getById(workflowIdParam);
+        const resolvedId = resolveWorkflowId(workflow) ?? workflowIdParam;
         loadFromWorkflow(
-          workflow.id,
-          workflow.name,
-          workflow.description,
-          workflow.nodes,
-          workflow.edges,
-          workflow.current_version,
+          resolvedId,
+          workflow.name || '未命名工作流',
+          workflow.description || '',
+          workflow.nodes ?? [],
+          workflow.edges ?? [],
+          workflow.current_version ?? 1,
         );
-        const versions = await workflowService.getVersions(workflowIdParam);
-        setVersions(versions);
+        try {
+          const versions = await workflowService.getVersions(workflowIdParam);
+          setVersions(Array.isArray(versions) ? versions : []);
+        } catch {
+          setVersions([]);
+        }
         pushHistory();
       } catch (err) {
         if (getApiErrorStatus(err) === 404) {
           toastError('工作流不存在');
           navigate('/workflows');
         } else {
-          toastError('加载工作流失败');
+          toastError(getApiErrorMessage(err, '加载工作流失败'));
+          navigate('/workflows');
         }
       } finally {
         setIsLoading(false);
@@ -95,27 +114,45 @@ export default function WorkflowEditorPage() {
   );
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      toastError('无效的工作流地址');
+      navigate('/workflows', { replace: true });
+      return;
+    }
+
+    let cancelled = false;
 
     if (id === 'new') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- create flow bootstrap
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- create bootstrap loading state
       setIsLoading(true);
       workflowService
         .create({ name: '未命名工作流' })
         .then((workflow) => {
-          navigate(`/workflows/${workflow.id}`, { replace: true });
+          if (cancelled) return;
+          const createdId = resolveWorkflowId(workflow);
+          if (!createdId) {
+            throw new Error('创建成功但未返回工作流 ID');
+          }
+          navigate(`/workflows/${createdId}`, { replace: true });
         })
-        .catch(() => {
-          toastError('创建工作流失败');
-          navigate('/workflows');
+        .catch((err) => {
+          if (cancelled) return;
+          toastError(getApiErrorMessage(err, '创建工作流失败'));
+          navigate('/workflows', { replace: true });
         });
-      return;
+
+      return () => {
+        cancelled = true;
+      };
     }
 
     reset();
     void loadWorkflow(id);
 
-    return () => reset();
+    return () => {
+      cancelled = true;
+      reset();
+    };
   }, [id, loadWorkflow, navigate, reset, toastError]);
 
   useEffect(() => {
@@ -196,12 +233,7 @@ export default function WorkflowEditorPage() {
       <ContextMenu />
 
       {blocker.state === 'blocked' ? (
-        <Modal
-          open
-          onClose={() => blocker.reset?.()}
-          title="未保存的更改"
-          size="sm"
-        >
+        <Modal open onClose={() => blocker.reset?.()} title="未保存的更改" size="sm">
           <p>你还有未保存的更改，确定要离开吗？</p>
           <div className="workflow-leave-modal__actions">
             <Button variant="ghost" onClick={() => blocker.reset?.()}>

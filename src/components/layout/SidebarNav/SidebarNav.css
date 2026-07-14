@@ -1,12 +1,18 @@
 .sidebar-nav {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 0;
   height: 100%;
   background: var(--bg-surface);
   border-right: 1px solid var(--border-default);
   overflow-x: hidden;
   overflow-y: auto;
   transition: width var(--duration-slow) var(--ease-default);
+}
+
+.sidebar-nav--collapsed {
+  width: var(--sidebar-collapsed-width);
 }
 
 .sidebar-nav__menu {

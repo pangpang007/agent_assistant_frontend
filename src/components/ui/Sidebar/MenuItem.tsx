@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { Tooltip } from '../Tooltip';
 import './Sidebar.css';
@@ -38,7 +38,10 @@ export function MenuItem({
   onClick,
   depth = 0,
 }: MenuItemProps) {
-  const hasChildren = children && children.length > 0;
+  const navigate = useNavigate();
+  const hasChildren = Boolean(children && children.length > 0);
+  const collapsedTargetPath =
+    path ?? children?.find((child) => Boolean(child.path))?.path;
 
   const itemClass = (isActive = active) =>
     cn(
@@ -78,6 +81,12 @@ export function MenuItem({
         type="button"
         className={itemClass(active)}
         onClick={() => {
+          // 折叠态：有子菜单时跳转到默认子路由，避免只展开却看不到子项
+          if (collapsed && hasChildren && collapsedTargetPath) {
+            navigate(collapsedTargetPath);
+            onClick?.();
+            return;
+          }
           if (hasChildren) onToggle?.();
           else onClick?.();
         }}
@@ -89,7 +98,7 @@ export function MenuItem({
 
   const wrapped = collapsed ? (
     <Tooltip content={label} placement="right">
-      <span className="menu-item__tooltip-wrap">{inner}</span>
+      <span className="menu-item__tooltip-wrap menu-item__tooltip-wrap--collapsed">{inner}</span>
     </Tooltip>
   ) : (
     inner
@@ -98,13 +107,13 @@ export function MenuItem({
   return (
     <div className="menu-item-wrapper">
       {wrapped}
-      {!collapsed && hasChildren && expanded && (
+      {!collapsed && hasChildren && expanded && children ? (
         <div className="menu-item__children">
           {children.map((child) => (
             <MenuItem key={child.label} {...child} collapsed={collapsed} depth={depth + 1} />
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

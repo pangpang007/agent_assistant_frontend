@@ -73,7 +73,7 @@ export const router = createBrowserRouter([
       {
         element: <EditorLayout />,
         children: [
-          { path: 'workflows/new', element: <WorkflowEditorPage /> },
+          // /workflows/new 与 /workflows/:id 共用编辑器；new 作为 id 触发创建流程
           { path: 'workflows/:id', element: <WorkflowEditorPage /> },
         ],
       },

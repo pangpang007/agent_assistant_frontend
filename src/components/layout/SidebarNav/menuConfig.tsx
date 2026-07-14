@@ -20,6 +20,7 @@ export const menuConfig: MenuItemConfig[] = [
     key: 'workflows',
     label: '工作流',
     icon: <GitBranch size={16} strokeWidth={1.5} />,
+    path: '/workflows',
     children: [
       { key: 'workflow-list', label: '列表', path: '/workflows' },
       { key: 'workflow-editor', label: '编辑器', path: '/workflows/new' },
@@ -55,6 +56,7 @@ export const menuConfig: MenuItemConfig[] = [
     key: 'settings',
     label: '设置',
     icon: <Settings size={16} strokeWidth={1.5} />,
+    path: '/settings/profile',
     children: [
       { key: 'settings-personal', label: '个人资料', path: '/settings/profile' },
       { key: 'settings-team', label: '团队管理', path: '/settings/team' },
