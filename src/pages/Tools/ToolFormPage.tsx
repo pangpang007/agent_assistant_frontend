@@ -59,7 +59,7 @@ export default function ToolFormPage() {
         setDescription(tool.description);
         setApiUrl(tool.api_url ?? '');
         setAuthType(tool.auth_type);
-        setParameters(tool.parameters);
+        setParameters(tool.parameters ?? []);
       } catch {
         toastError('工具不存在');
         navigate('/tools', { replace: true });
@@ -75,7 +75,7 @@ export default function ToolFormPage() {
     setName(data.name);
     setDescription(data.description);
     setApiUrl(data.api_url);
-    setParameters(data.parameters);
+    setParameters(data.parameters ?? []);
     markDirty();
   };
 

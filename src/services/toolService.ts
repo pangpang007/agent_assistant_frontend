@@ -1,4 +1,5 @@
 import http from '@/lib/axios';
+import { asArray, pickList } from '@/lib/arrayUtils';
 import { encryptOptional } from '@/lib/transportCrypto';
 import type {
   CreateToolRequest,
@@ -40,10 +41,23 @@ async function withEncryptedAuth<T extends { auth_config?: CreateToolRequest['au
 }
 
 export const toolService = {
-  getList: (params?: { type?: ToolType; search?: string }): Promise<ToolListResponse> =>
-    http.get('/tools', { params }),
+  getList: async (params?: {
+    type?: ToolType;
+    search?: string;
+  }): Promise<ToolListResponse> => {
+    const res = await http.get('/tools', { params });
+    const tools = pickList<Tool>(res, ['tools', 'items', 'results']);
+    const total =
+      res && typeof res === 'object' && !Array.isArray(res)
+        ? Number((res as { total?: number }).total ?? tools.length)
+        : tools.length;
+    return { tools, total };
+  },
 
-  getById: (id: string): Promise<Tool> => http.get(`/tools/${id}`),
+  getById: async (id: string): Promise<Tool> => {
+    const tool = (await http.get(`/tools/${id}`)) as Tool;
+    return { ...tool, parameters: asArray(tool?.parameters) };
+  },
 
   create: async (data: CreateToolRequest): Promise<Tool> =>
     http.post('/tools', await withEncryptedAuth(data)),
@@ -53,8 +67,19 @@ export const toolService = {
 
   delete: (id: string): Promise<void> => http.delete(`/tools/${id}`),
 
-  getReferences: (id: string): Promise<ToolReferenceResponse> =>
-    http.get(`/tools/${id}/references`),
+  getReferences: async (id: string): Promise<ToolReferenceResponse> => {
+    const res = await http.get(`/tools/${id}/references`);
+    const agents = pickList<ToolReferenceResponse['agents'][number]>(res, [
+      'agents',
+      'items',
+      'results',
+    ]);
+    const agentCount =
+      res && typeof res === 'object' && !Array.isArray(res)
+        ? Number((res as { agent_count?: number }).agent_count ?? agents.length)
+        : agents.length;
+    return { agents, agent_count: agentCount };
+  },
 
   testTool: (id: string, data: ToolTestRequest): Promise<ToolTestResponse> =>
     http.post(`/tools/${id}/test`, data),

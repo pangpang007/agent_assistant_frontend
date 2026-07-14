@@ -56,7 +56,7 @@ export default function AgentListPage() {
         search: debouncedSearch || undefined,
         ...sortParams,
       });
-      setAgents(Array.isArray(res) ? res : (res?.agents ?? []));
+      setAgents(res?.agents ?? []);
     } catch {
       setLoadError(true);
       toastError('加载 Agent 列表失败');

@@ -64,7 +64,7 @@ export default function WorkflowEditorPage() {
       const res = await workflowService.save(workflowId, { nodes, edges });
       markSaved(new Date().toISOString(), res.version.version);
       try {
-        setVersions(await workflowService.getVersions(workflowId));
+        setVersions((await workflowService.getVersions(workflowId)) ?? []);
       } catch {
         // versions are optional after save
       }

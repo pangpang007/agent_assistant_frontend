@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { asArray } from '@/lib/arrayUtils';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '../Spinner';
 import { Button } from '../Button';
@@ -60,6 +61,7 @@ export function Table<T extends Record<string, unknown>>({
   onRowClick,
   className,
 }: TableProps<T>) {
+  const rows = asArray<T>(data);
   const totalPages = pagination
     ? Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
     : 1;
@@ -115,14 +117,14 @@ export function Table<T extends Record<string, unknown>>({
                 ))}
               </tr>
             ))
-          ) : data.length === 0 ? (
+          ) : rows.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="table__empty">
                 {emptyText}
               </td>
             </tr>
           ) : (
-            data.map((record, index) => (
+            rows.map((record, index) => (
               <tr
                 key={getRowKey(record, rowKey)}
                 className={cn(onRowClick && 'table__row--clickable')}

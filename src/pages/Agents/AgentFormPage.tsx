@@ -72,8 +72,8 @@ export default function AgentFormPage() {
           modelService.getEnabledModels(),
           toolService.getList(),
         ]);
-        setModels(modelsRes.models);
-        setTools(toolsRes.tools);
+        setModels(modelsRes.models ?? []);
+        setTools(toolsRes.tools ?? []);
       } catch {
         toastError('加载模型或工具列表失败');
       }

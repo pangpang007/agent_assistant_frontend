@@ -1,9 +1,11 @@
 import http from '@/lib/axios';
+import { pickList } from '@/lib/arrayUtils';
 import type {
   JoinTeamRequest,
   JoinTeamResponse,
   ResetInviteCodeResponse,
   TeamInfoResponse,
+  TeamMember,
   TeamMembersResponse,
 } from '@/types';
 
@@ -19,6 +21,8 @@ export const teamService = {
         invite_code?: string;
       };
 
+    const members = pickList<TeamMember>(res, ['members', 'items', 'results']);
+
     if (res.team) {
       return { team: res.team, invite_code: res.invite_code ?? '' };
     }
@@ -29,14 +33,17 @@ export const teamService = {
         name: res.team_name ?? '我的团队',
         owner_id: '',
         owner_name: '',
-        member_count: res.members?.length ?? 0,
+        member_count: members.length,
         created_at: '',
       },
       invite_code: res.invite_code ?? '',
     };
   },
 
-  getMembers: (): Promise<TeamMembersResponse> => http.get('/teams/members'),
+  getMembers: async (): Promise<TeamMembersResponse> => {
+    const res = await http.get('/teams/members');
+    return { members: pickList<TeamMember>(res, ['members', 'items', 'results']) };
+  },
 
   removeMember: (memberId: string): Promise<{ message: string }> =>
     http.delete(`/teams/members/${memberId}`),

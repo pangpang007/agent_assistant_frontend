@@ -19,6 +19,7 @@ export function ModelSupplierCard({
   onSetDefaultModel,
 }: ModelSupplierCardProps) {
   const isActive = supplier.status === 'active';
+  const models = Array.isArray(supplier.models) ? supplier.models : [];
 
   return (
     <Card padding="md" className="model-supplier-card">
@@ -54,7 +55,7 @@ export function ModelSupplierCard({
         <p className="model-supplier-card__disabled-hint">已禁用，模型不可用</p>
       )}
 
-      {isActive && supplier.models.length > 0 && (
+      {isActive && models.length > 0 && (
         <>
           <div className="model-supplier-card__divider" />
           <h4 className="model-supplier-card__models-title">模型列表</h4>
@@ -65,7 +66,7 @@ export function ModelSupplierCard({
             <span>状态</span>
             <span>操作</span>
           </div>
-          {supplier.models.map((model: ModelInfo) => (
+          {models.map((model: ModelInfo) => (
             <ModelListItem
               key={model.id}
               model={model}
@@ -76,7 +77,7 @@ export function ModelSupplierCard({
         </>
       )}
 
-      {isActive && supplier.models.length === 0 && (
+      {isActive && models.length === 0 && (
         <p className="model-supplier-card__empty">
           <CheckCircle size={14} /> 暂无模型数据
         </p>

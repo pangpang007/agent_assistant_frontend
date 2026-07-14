@@ -1,4 +1,5 @@
 import http from '@/lib/axios';
+import { asArray, pickList } from '@/lib/arrayUtils';
 import type {
   CreateWorkflowRequest,
   RunWorkflowRequest,
@@ -10,6 +11,7 @@ import type {
   UpdateWorkflowRequest,
   ValidateWorkflowResponse,
   Workflow,
+  WorkflowListItem,
   WorkflowListParams,
   WorkflowListResponse,
   WorkflowVersion,
@@ -20,17 +22,35 @@ type BackendWorkflow = Workflow & {
   edges_data?: Workflow['edges'];
 };
 
-function normalizeWorkflow(raw: BackendWorkflow): Workflow {
+function normalizeWorkflow(raw: BackendWorkflow | null | undefined): Workflow {
+  const base = (raw ?? {}) as BackendWorkflow;
+  const nodes = asArray<Workflow['nodes'][number]>(
+    base.nodes?.length ? base.nodes : base.nodes_data,
+  );
+  const edges = asArray<Workflow['edges'][number]>(
+    base.edges?.length ? base.edges : base.edges_data,
+  );
   return {
-    ...raw,
-    nodes: raw.nodes?.length ? raw.nodes : (raw.nodes_data ?? []),
-    edges: raw.edges?.length ? raw.edges : (raw.edges_data ?? []),
+    ...base,
+    nodes,
+    edges,
   };
 }
 
 export const workflowService = {
-  getList: (params?: WorkflowListParams): Promise<WorkflowListResponse> =>
-    http.get('/workflows', { params }),
+  getList: async (params?: WorkflowListParams): Promise<WorkflowListResponse> => {
+    const res = await http.get('/workflows', { params });
+    const workflows = pickList<WorkflowListItem>(res, [
+      'workflows',
+      'items',
+      'results',
+    ]);
+    const total =
+      res && typeof res === 'object' && !Array.isArray(res)
+        ? Number((res as { total?: number }).total ?? workflows.length)
+        : workflows.length;
+    return { workflows, total };
+  },
 
   getById: async (id: string): Promise<Workflow> =>
     normalizeWorkflow(await http.get(`/workflows/${id}`)),
@@ -69,8 +89,20 @@ export const workflowService = {
     };
   },
 
-  validate: (id: string): Promise<ValidateWorkflowResponse> =>
-    http.post(`/workflows/${id}/validate`),
+  validate: async (id: string): Promise<ValidateWorkflowResponse> => {
+    const res = await http.post(`/workflows/${id}/validate`);
+    const issues = pickList<ValidateWorkflowResponse['issues'][number]>(res, [
+      'issues',
+      'errors',
+      'items',
+      'results',
+    ]);
+    const valid =
+      res && typeof res === 'object' && !Array.isArray(res)
+        ? Boolean((res as { valid?: boolean }).valid ?? issues.length === 0)
+        : issues.length === 0;
+    return { valid, issues };
+  },
 
   /** OpenAPI currently has no /run; keep path for when backend adds it. */
   run: (id: string, data: RunWorkflowRequest): Promise<RunWorkflowResponse> =>
@@ -86,15 +118,20 @@ export const workflowService = {
 
   export: (id: string): Promise<Record<string, unknown>> => http.get(`/workflows/${id}/export`),
 
-  import: (file: File): Promise<Workflow> => {
+  import: async (file: File): Promise<Workflow> => {
     const formData = new FormData();
     formData.append('file', file);
-    return http.post('/workflows/import', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    return normalizeWorkflow(
+      await http.post('/workflows/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }),
+    );
   },
 
-  getVersions: (id: string): Promise<WorkflowVersion[]> => http.get(`/workflows/${id}/versions`),
+  getVersions: async (id: string): Promise<WorkflowVersion[]> => {
+    const res = await http.get(`/workflows/${id}/versions`);
+    return pickList<WorkflowVersion>(res, ['versions', 'items', 'results']);
+  },
 
   getVersion: async (id: string, version: number): Promise<Workflow> =>
     normalizeWorkflow(await http.get(`/workflows/${id}/versions/${version}`)),
@@ -104,15 +141,17 @@ export const workflowService = {
 
   duplicate: async (id: string): Promise<Workflow> => {
     const source = await workflowService.getById(id);
-    return workflowService.create({
-      name: `${source.name} (副本)`,
-      description: source.description,
-    }).then(async (created) =>
-      workflowService.update(created.id, {
-        nodes: source.nodes,
-        edges: source.edges,
-      }),
-    );
+    return workflowService
+      .create({
+        name: `${source.name} (副本)`,
+        description: source.description,
+      })
+      .then(async (created) =>
+        workflowService.update(created.id, {
+          nodes: source.nodes,
+          edges: source.edges,
+        }),
+      );
   },
 };
 

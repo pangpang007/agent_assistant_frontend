@@ -36,7 +36,7 @@ export function RetrievalTestPanel({ knowledgeBaseId }: RetrievalTestPanelProps)
         query: query.trim(),
         top_k: topK,
       });
-      setResults(res.results);
+      setResults(res.results ?? []);
       setQueryTimeMs(res.query_time_ms);
     } catch (err) {
       toastError(getApiErrorMessage(err, '检索失败'));

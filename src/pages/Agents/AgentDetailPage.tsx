@@ -38,7 +38,7 @@ export default function AgentDetailPage() {
           toolService.getList(),
         ]);
         setAgent(agentData);
-        setTools(toolsData.tools);
+        setTools(toolsData.tools ?? []);
       } catch {
         setNotFound(true);
       } finally {
@@ -81,7 +81,8 @@ export default function AgentDetailPage() {
     );
   }
 
-  const toolNames = tools.filter((t) => agent.tool_ids.includes(t.id)).map((t) => t.name);
+  const toolIds = agent.tool_ids ?? [];
+  const toolNames = tools.filter((t) => toolIds.includes(t.id)).map((t) => t.name);
 
   return (
     <div className="phase2-page phase2-page--form">

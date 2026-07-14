@@ -1,4 +1,5 @@
 import http from '@/lib/axios';
+import { asArray, pickList } from '@/lib/arrayUtils';
 import type {
   Agent,
   AgentListParams,
@@ -8,10 +9,23 @@ import type {
 } from '@/types';
 
 export const agentService = {
-  getList: (params?: AgentListParams): Promise<AgentListResponse> =>
-    http.get('/agents', { params }),
+  getList: async (params?: AgentListParams): Promise<AgentListResponse> => {
+    const res = await http.get('/agents', { params });
+    const agents = pickList<Agent>(res, ['agents', 'items', 'results']);
+    const total =
+      res && typeof res === 'object' && !Array.isArray(res)
+        ? Number((res as { total?: number }).total ?? agents.length)
+        : agents.length;
+    return { agents, total };
+  },
 
-  getById: (id: string): Promise<Agent> => http.get(`/agents/${id}`),
+  getById: async (id: string): Promise<Agent> => {
+    const agent = (await http.get(`/agents/${id}`)) as Agent;
+    return {
+      ...agent,
+      tool_ids: asArray(agent?.tool_ids),
+    };
+  },
 
   create: (data: CreateAgentRequest): Promise<Agent> => http.post('/agents', data),
 

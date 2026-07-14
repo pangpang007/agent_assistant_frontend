@@ -171,7 +171,9 @@ export function AgentPanel({ node }: NodePanelProps) {
     agentService
       .getList()
       .then((res) =>
-        setAgents(res.agents.map((a) => ({ value: a.id, label: a.name }))),
+        setAgents(
+          (res.agents ?? []).map((a) => ({ value: a.id, label: a.name })),
+        ),
       )
       .catch(() => setAgents([]));
   }, []);
@@ -209,7 +211,12 @@ export function KnowledgeRetrievalPanel({ node }: NodePanelProps) {
     knowledgeService
       .getList()
       .then((res) =>
-        setKbs(res.knowledge_bases.map((kb) => ({ value: kb.id, label: kb.name }))),
+        setKbs(
+          (res.knowledge_bases ?? []).map((kb) => ({
+            value: kb.id,
+            label: kb.name,
+          })),
+        ),
       )
       .catch(() => setKbs([]));
   }, []);

@@ -11,6 +11,7 @@ import { Table, type Column } from '@/components/ui/Table';
 import { Tag } from '@/components/ui/Tag';
 import { useToast } from '@/components/ui/Toast';
 import { SUPPLIER_TYPE_LABELS } from '@/lib/phase2Constants';
+import { asArray } from '@/lib/arrayUtils';
 import { formatCost, formatTokenCount, getApiErrorMessage } from '@/lib/validation';
 import { modelService } from '@/services/modelService';
 import type {
@@ -53,8 +54,9 @@ export default function ModelSettingsPage() {
     setIsLoadingSuppliers(true);
     try {
       const res = await modelService.getSuppliers();
-      setSuppliers(res.suppliers);
+      setSuppliers(asArray(res?.suppliers));
     } catch {
+      setSuppliers([]);
       toastError('加载供应商列表失败');
     } finally {
       setIsLoadingSuppliers(false);
@@ -65,9 +67,16 @@ export default function ModelSettingsPage() {
     setIsLoadingUsage(true);
     try {
       const res = await modelService.getUsage();
-      setUsageRecords(res.records);
-      setUsageSummary(res.summary);
+      setUsageRecords(asArray(res?.records));
+      setUsageSummary(
+        res?.summary ?? {
+          total_input_tokens: 0,
+          total_output_tokens: 0,
+          total_cost: 0,
+        },
+      );
     } catch {
+      setUsageRecords([]);
       toastError('加载用量统计失败');
     } finally {
       setIsLoadingUsage(false);
@@ -163,7 +172,7 @@ export default function ModelSettingsPage() {
     setSuppliers((s) =>
       s.map((sup) => ({
         ...sup,
-        models: sup.models.map((m) => ({
+        models: asArray<ModelSupplier['models'][number]>(sup.models).map((m) => ({
           ...m,
           is_default: m.id === modelId,
         })),

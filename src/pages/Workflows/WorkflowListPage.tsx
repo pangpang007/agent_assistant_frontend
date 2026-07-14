@@ -48,7 +48,7 @@ export default function WorkflowListPage() {
         sort_by: sortBy,
         sort_order: 'desc',
       });
-      setWorkflows(Array.isArray(res) ? res : (res?.workflows ?? []));
+      setWorkflows(res?.workflows ?? []);
     } catch {
       setLoadError(true);
       toastError('加载工作流列表失败');

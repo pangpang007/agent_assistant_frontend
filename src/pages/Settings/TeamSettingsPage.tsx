@@ -46,7 +46,7 @@ export default function TeamSettingsPage() {
       ]);
       setTeamInfo(infoRes.team);
       setInviteCode(infoRes.invite_code);
-      setMembers(membersRes.members);
+      setMembers(membersRes.members ?? []);
     } catch (err) {
       toastError(getApiErrorMessage(err, '加载团队信息失败'));
     } finally {

@@ -47,7 +47,7 @@ export default function ToolListPage() {
         type: typeFilter === 'all' ? undefined : typeFilter,
         search: debouncedSearch || undefined,
       });
-      setTools(Array.isArray(res) ? res : (res?.tools ?? []));
+      setTools(res?.tools ?? []);
     } catch {
       setLoadError(true);
       toastError('加载工具列表失败');
@@ -80,7 +80,7 @@ export default function ToolListPage() {
         id: tool.id,
         name: tool.name,
         agentCount: refs.agent_count,
-        agentNames: refs.agents.map((a) => a.name),
+        agentNames: (refs.agents ?? []).map((a) => a.name),
       });
     } catch (err) {
       toastError(getApiErrorMessage(err, '获取引用信息失败'));

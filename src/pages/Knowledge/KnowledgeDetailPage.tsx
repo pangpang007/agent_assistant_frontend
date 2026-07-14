@@ -57,7 +57,7 @@ export default function KnowledgeDetailPage() {
     if (!id) return;
     try {
       const res = await knowledgeService.getDocuments(id);
-      setDocuments(res.documents);
+      setDocuments(res.documents ?? []);
     } catch (err) {
       if (getApiErrorStatus(err) === 404) {
         toastError('知识库已被删除');

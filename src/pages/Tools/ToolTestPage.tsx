@@ -38,7 +38,7 @@ export default function ToolTestPage() {
         const data = await toolService.getById(id);
         setTool(data);
         const initial: Record<string, string> = {};
-        data.parameters.forEach((p) => {
+        (data.parameters ?? []).forEach((p) => {
           initial[p.name] = p.default_value ?? '';
         });
         setParams(initial);
@@ -94,7 +94,7 @@ export default function ToolTestPage() {
       <div className="phase2-test-grid">
         <Card padding="md" className="tool-test__panel">
           <h2 className="tool-test__title">请求参数</h2>
-          {tool.parameters.map((param) => (
+          {(tool.parameters ?? []).map((param) => (
             <div key={param.name} className="tool-test__param-row">
               <label className="tool-test__param-label">
                 {param.name}
