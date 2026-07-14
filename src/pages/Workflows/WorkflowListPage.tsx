@@ -48,7 +48,7 @@ export default function WorkflowListPage() {
         sort_by: sortBy,
         sort_order: 'desc',
       });
-      setWorkflows(res.workflows);
+      setWorkflows(Array.isArray(res) ? res : (res?.workflows ?? []));
     } catch {
       setLoadError(true);
       toastError('加载工作流列表失败');
@@ -63,9 +63,10 @@ export default function WorkflowListPage() {
   }, [fetchList]);
 
   const filtered = useMemo(() => {
-    if (!debouncedSearch) return workflows;
+    const list = workflows ?? [];
+    if (!debouncedSearch) return list;
     const q = debouncedSearch.toLowerCase();
-    return workflows.filter(
+    return list.filter(
       (w) =>
         w.name.toLowerCase().includes(q) ||
         w.description?.toLowerCase().includes(q),

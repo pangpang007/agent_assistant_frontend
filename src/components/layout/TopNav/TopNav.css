@@ -70,8 +70,19 @@
   color: var(--text-primary);
 }
 
+.top-nav__menu-btn:active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
 .top-nav__icon-btn:active {
   background: var(--bg-active);
+  transform: scale(0.96);
+}
+
+.top-nav__avatar:active {
+  filter: brightness(0.95);
+  transform: scale(0.96);
 }
 
 .top-nav__theme-btn:hover {

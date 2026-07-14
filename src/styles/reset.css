@@ -12,8 +12,13 @@ html {
   line-height: var(--leading-normal);
   color: var(--text-primary);
   background-color: var(--bg-canvas);
+  color-scheme: dark;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
 }
 
 body {

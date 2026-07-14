@@ -47,7 +47,7 @@ export default function ToolListPage() {
         type: typeFilter === 'all' ? undefined : typeFilter,
         search: debouncedSearch || undefined,
       });
-      setTools(res.tools);
+      setTools(Array.isArray(res) ? res : (res?.tools ?? []));
     } catch {
       setLoadError(true);
       toastError('加载工具列表失败');

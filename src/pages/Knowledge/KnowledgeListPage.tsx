@@ -50,7 +50,7 @@ export default function KnowledgeListPage() {
     setLoadError(false);
     try {
       const res = await knowledgeService.getList();
-      setKnowledgeBases(res.knowledge_bases);
+      setKnowledgeBases(Array.isArray(res) ? res : (res?.knowledge_bases ?? []));
     } catch {
       setLoadError(true);
       toastError('加载知识库列表失败');

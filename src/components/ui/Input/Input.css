@@ -69,6 +69,11 @@
   color: var(--text-primary);
   font-size: var(--text-sm);
   outline: none;
+  caret-color: var(--text-primary);
+  /* 防止部分浏览器 focus 时出现默认白底 */
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .input-field__input::placeholder {
@@ -77,6 +82,29 @@
 
 .input-field__input:disabled {
   cursor: not-allowed;
+}
+
+/* Chrome/Safari autofill 强制贴合暗色主题，避免白色长方形 */
+.input-field__input:-webkit-autofill,
+.input-field__input:-webkit-autofill:hover,
+.input-field__input:-webkit-autofill:focus,
+.input-field__input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary);
+  transition: background-color 99999s ease-in-out 0s;
+  box-shadow: 0 0 0 1000px var(--bg-input) inset !important;
+  border-radius: inherit;
+}
+
+.input-field__input:focus,
+.input-field__input:active {
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
+.input-field__control:active:not(.input-field__control--disabled) {
+  border-color: var(--accent-primary-active);
 }
 
 .input-field__icon {
