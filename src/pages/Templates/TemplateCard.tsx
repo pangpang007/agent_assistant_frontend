@@ -40,7 +40,7 @@ export function TemplateCard({ template, onUse }: TemplateCardProps) {
         <p className="template-card__desc">{template.description || '暂无描述'}</p>
         <div className="template-card__tags">
           <Tag color={category.tagColor ?? 'default'}>{category.label}</Tag>
-          {template.tags.slice(0, 3).map((tag) => (
+          {(template.tags ?? []).slice(0, 3).map((tag) => (
             <Tag key={tag} color="default">
               {tag}
             </Tag>

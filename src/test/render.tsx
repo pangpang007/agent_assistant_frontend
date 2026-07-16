@@ -42,10 +42,9 @@ export function clearTestQueryClient() {
 export function resetAuthStore(overrides?: Partial<ReturnType<typeof useAuthStore.getState>>) {
   useAuthStore.setState({
     user: null,
-    accessToken: null,
-    refreshToken: null,
     isAuthenticated: false,
     isLoading: false,
+    initialized: true,
     ...overrides,
   });
 }
@@ -53,10 +52,9 @@ export function resetAuthStore(overrides?: Partial<ReturnType<typeof useAuthStor
 export function setAuthenticatedUser(user: UserInfo = mockUser) {
   resetAuthStore({
     user,
-    accessToken: 'access-token',
-    refreshToken: 'refresh-token',
     isAuthenticated: true,
     isLoading: false,
+    initialized: true,
   });
 }
 

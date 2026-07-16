@@ -10,6 +10,8 @@ export interface FormSelectOption {
   group?: string;
 }
 
+export type FormSelectSize = 'sm' | 'md';
+
 export interface FormSelectProps {
   label?: string;
   value: string;
@@ -19,6 +21,7 @@ export interface FormSelectProps {
   error?: string;
   disabled?: boolean;
   emptyHint?: React.ReactNode;
+  size?: FormSelectSize;
 }
 
 export function FormSelect({
@@ -30,6 +33,7 @@ export function FormSelect({
   error,
   disabled = false,
   emptyHint,
+  size = 'md',
 }: FormSelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -48,18 +52,23 @@ export function FormSelect({
   }, [open]);
 
   return (
-    <div className="form-select" ref={ref}>
+    <div className={cn('form-select', size === 'sm' && 'form-select--sm')} ref={ref}>
       {label && <label className="phase2-field-label">{label}</label>}
       <button
         type="button"
-        className={cn('form-select__trigger', error && 'form-select__trigger--error', disabled && 'form-select__trigger--disabled')}
+        className={cn(
+          'form-select__trigger',
+          size === 'sm' && 'form-select__trigger--sm',
+          error && 'form-select__trigger--error',
+          disabled && 'form-select__trigger--disabled',
+        )}
         disabled={disabled}
         onClick={() => !disabled && setOpen((v) => !v)}
       >
-        <span className={cn(!selected && 'form-select__placeholder')}>
+        <span className={cn('form-select__value', !selected && 'form-select__placeholder')}>
           {selected?.label ?? placeholder}
         </span>
-        <ChevronDown size={16} />
+        <ChevronDown size={size === 'sm' ? 12 : 16} className="form-select__chevron" />
       </button>
       {error && <p className="phase2-field-error">{error}</p>}
       {open && (
@@ -76,7 +85,11 @@ export function FormSelect({
                     <button
                       key={opt.value}
                       type="button"
-                      className={cn('form-select__option', value === opt.value && 'form-select__option--selected')}
+                      className={cn(
+                        'form-select__option',
+                        size === 'sm' && 'form-select__option--sm',
+                        value === opt.value && 'form-select__option--selected',
+                      )}
                       onClick={() => {
                         onChange(opt.value);
                         setOpen(false);
@@ -92,7 +105,11 @@ export function FormSelect({
               <button
                 key={opt.value}
                 type="button"
-                className={cn('form-select__option', value === opt.value && 'form-select__option--selected')}
+                className={cn(
+                  'form-select__option',
+                  size === 'sm' && 'form-select__option--sm',
+                  value === opt.value && 'form-select__option--selected',
+                )}
                 onClick={() => {
                   onChange(opt.value);
                   setOpen(false);

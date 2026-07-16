@@ -1,26 +1,15 @@
-import axios from 'axios';
 import http from '@/lib/axios';
-import { getApiBaseUrl } from '@/lib/backendConfig';
-import { unwrapApiData } from '@/lib/apiEnvelope';
 import { encryptSensitive } from '@/lib/transportCrypto';
-import type {
-  LoginRequest,
-  LoginResponse,
-  RegisterRequest,
-  RegisterResponse,
-  RefreshTokenResponse,
-} from '@/types';
-
-const BASE_URL = getApiBaseUrl();
+import type { LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from '@/types';
 
 export const authService = {
-  login: async (data: LoginRequest): Promise<LoginResponse> =>
+  login: async (data: LoginRequest): Promise<LoginResponse | void> =>
     http.post('/auth/login', {
       ...data,
       password: await encryptSensitive(data.password),
     }),
 
-  register: async (data: RegisterRequest): Promise<RegisterResponse> => {
+  register: async (data: RegisterRequest): Promise<RegisterResponse | void> => {
     const { register_type, account_type, ...rest } = data as RegisterRequest & {
       account_type?: string;
     };
@@ -29,13 +18,6 @@ export const authService = {
       account_type: account_type ?? register_type ?? 'personal',
       password: await encryptSensitive(data.password),
     });
-  },
-
-  refreshToken: async (refreshToken: string): Promise<RefreshTokenResponse> => {
-    const response = await axios.post(`${BASE_URL}/auth/refresh`, {
-      refresh_token: refreshToken,
-    });
-    return unwrapApiData<RefreshTokenResponse>(response.data);
   },
 
   logout: (): Promise<void> => http.post('/auth/logout'),

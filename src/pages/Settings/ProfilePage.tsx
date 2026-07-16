@@ -19,7 +19,7 @@ import '@/pages/Auth/AuthPages.css';
 export default function ProfilePage() {
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
-  const clearAuth = useAuthStore((s) => s.clearAuth);
+  const resetAuth = useAuthStore((s) => s.reset);
   const navigate = useNavigate();
   const { success, error: toastError } = useToast();
 
@@ -100,7 +100,7 @@ export default function ProfilePage() {
     setIsDeleting(true);
     try {
       await userService.deleteAccount();
-      clearAuth();
+      resetAuth();
       success('账户已删除');
       navigate('/login', { replace: true });
     } catch (err) {

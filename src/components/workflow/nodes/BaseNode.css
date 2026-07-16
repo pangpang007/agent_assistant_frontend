@@ -136,6 +136,8 @@
   border-radius: 50%;
   background: var(--bg-elevated);
   border: 2px solid var(--border-default);
+  z-index: 10;
+  pointer-events: all !important;
   transition: all var(--duration-fast) var(--ease-default);
 }
 

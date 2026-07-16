@@ -1,4 +1,5 @@
 import type { NodeType, OutputVariable } from '@/types';
+import { buildNodeHandles } from '@/lib/workflow/edgeHandles';
 
 export function getNodeDefaultName(type: NodeType): string {
   const names: Record<NodeType, string> = {
@@ -37,7 +38,11 @@ export function getNodeDefaultConfig(type: NodeType): Record<string, unknown> {
       topK: 3,
       minScore: 0.5,
     },
-    questionClassifier: { modelId: null, inputVariable: '', categories: [] as string[] },
+    questionClassifier: {
+      modelId: null,
+      inputVariable: '',
+      categories: ['分类 1'] as string[],
+    },
     parameterExtractor: { modelId: null, inputVariable: '', parameters: [] },
     condition: {
       branches: [
@@ -100,14 +105,19 @@ export function createWorkflowNode(
   position: { x: number; y: number },
   id?: string,
 ): import('@/types').WorkflowNode {
+  const config = getNodeDefaultConfig(type);
   return {
     id: id ?? `${type}_${Date.now()}`,
     type,
     position,
+    // Prefer initial* so RF can still measure; handles enable edge paint before measure
+    initialWidth: 240,
+    initialHeight: 88,
+    handles: buildNodeHandles(type, config),
     data: {
       label: getNodeDefaultName(type),
       nodeType: type,
-      config: getNodeDefaultConfig(type),
+      config,
       outputs: getNodeDefaultOutputs(type),
     },
   };

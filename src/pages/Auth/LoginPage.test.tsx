@@ -9,32 +9,27 @@ vi.mock('@/services/authService', () => ({
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
-    refresh: vi.fn(),
   },
 }));
 
-vi.mock('@/lib/authStorage', () => ({
-  authStorage: {
-    setTokens: vi.fn(),
-    setUser: vi.fn(),
-    getAccessToken: vi.fn(),
-    getRefreshToken: vi.fn(),
-    getUser: vi.fn(),
-    clear: vi.fn(),
+vi.mock('@/services/userService', () => ({
+  userService: {
+    getProfile: vi.fn(),
+    getProfileForAuthCheck: vi.fn(),
+    updateProfile: vi.fn(),
+    updatePassword: vi.fn(),
+    deleteAccount: vi.fn(),
   },
 }));
 
 import { authService } from '@/services/authService';
+import { userService } from '@/services/userService';
 
 describe('LoginPage (Phase 1)', () => {
   beforeEach(() => {
     resetAuthStore({ isLoading: false, isAuthenticated: false });
-    vi.mocked(authService.login).mockResolvedValue({
-      access_token: 'a',
-      refresh_token: 'r',
-      token_type: 'bearer',
-      user: mockUser,
-    });
+    vi.mocked(authService.login).mockResolvedValue({ user: mockUser });
+    vi.mocked(userService.getProfile).mockResolvedValue(mockUser);
   });
 
   it('renders login form with email, password and submit', () => {

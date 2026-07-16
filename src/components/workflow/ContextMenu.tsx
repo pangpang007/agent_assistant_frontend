@@ -7,6 +7,7 @@ export function ContextMenu() {
   const closeContextMenu = useWorkflowEditorStore((s) => s.closeContextMenu);
   const duplicateNode = useWorkflowEditorStore((s) => s.duplicateNode);
   const removeNode = useWorkflowEditorStore((s) => s.removeNode);
+  const removeEdge = useWorkflowEditorStore((s) => s.removeEdge);
   const pushHistory = useWorkflowEditorStore((s) => s.pushHistory);
   const setRightPanel = useWorkflowEditorStore((s) => s.setRightPanel);
   const nodes = useWorkflowEditorStore((s) => s.nodes);
@@ -15,24 +16,32 @@ export function ContextMenu() {
 
   const targetNode = nodes.find((n) => n.id === contextMenu.targetNodeId);
   const isStart = targetNode?.type === 'start';
+  const hasEdge = Boolean(contextMenu.targetEdgeId);
+  const hasNode = Boolean(contextMenu.targetNodeId);
 
   const handleAction = (action: string) => {
     const nodeId = contextMenu.targetNodeId;
+    const edgeId = contextMenu.targetEdgeId;
     closeContextMenu();
-    if (!nodeId) return;
 
     switch (action) {
       case 'copy':
+        if (!nodeId) return;
         duplicateNode(nodeId);
         pushHistory();
         break;
-      case 'delete':
-        if (!isStart) {
-          removeNode(nodeId);
-          pushHistory();
-        }
+      case 'deleteNode':
+        if (!nodeId || isStart) return;
+        removeNode(nodeId);
+        pushHistory();
+        break;
+      case 'deleteEdge':
+        if (!edgeId) return;
+        removeEdge(edgeId);
+        pushHistory();
         break;
       case 'test':
+        if (!nodeId) return;
         useWorkflowEditorStore.getState().selectNode(nodeId);
         setRightPanel('debug');
         break;
@@ -50,7 +59,17 @@ export function ContextMenu() {
       style={{ top: contextMenu.y, left: contextMenu.x }}
       role="menu"
     >
-      {contextMenu.targetNodeId ? (
+      {hasEdge ? (
+        <button
+          type="button"
+          className="workflow-context-menu__item workflow-context-menu__item--danger"
+          onClick={() => handleAction('deleteEdge')}
+        >
+          <Trash2 size={14} /> 删除连线
+        </button>
+      ) : null}
+
+      {hasNode ? (
         <>
           <button type="button" className="workflow-context-menu__item" onClick={() => handleAction('copy')}>
             <Copy size={14} /> 复制节点
@@ -59,7 +78,7 @@ export function ContextMenu() {
             <button
               type="button"
               className="workflow-context-menu__item workflow-context-menu__item--danger"
-              onClick={() => handleAction('delete')}
+              onClick={() => handleAction('deleteNode')}
             >
               <Trash2 size={14} /> 删除节点
             </button>

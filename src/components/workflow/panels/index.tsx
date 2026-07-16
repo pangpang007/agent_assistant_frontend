@@ -100,6 +100,7 @@ export function StartPanel({ node }: NodePanelProps) {
               placeholder="变量名"
             />
             <FormSelect
+              size="sm"
               value={v.type}
               options={[
                 { value: 'string', label: '字符串' },
@@ -311,6 +312,7 @@ export function ParameterExtractorPanel({ node }: NodePanelProps) {
               }}
             />
             <FormSelect
+              size="sm"
               value={p.type}
               options={[
                 { value: 'string', label: '字符串' },

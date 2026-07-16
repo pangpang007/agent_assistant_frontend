@@ -29,18 +29,20 @@ export interface RegisterRequest {
   team_name?: string;
 }
 
+/** Cookie 鉴权后 token 字段可选（过渡期后端仍可能返回）。 */
 export interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: 'bearer';
-  user: UserInfo;
+  access_token?: string;
+  refresh_token?: string;
+  token_type?: 'bearer' | string;
+  user?: UserInfo;
 }
 
 export interface RegisterResponse {
-  message: string;
-  user: UserInfo;
+  message?: string;
+  user?: UserInfo;
 }
 
+/** @deprecated Cookie 模式下由后端自动续期，前端不再调用 refresh */
 export interface RefreshTokenResponse {
   access_token: string;
   refresh_token: string;

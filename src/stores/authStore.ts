@@ -1,107 +1,116 @@
 import { create } from 'zustand';
 import { authService } from '@/services/authService';
 import { userService } from '@/services/userService';
-import { authStorage } from '@/lib/authStorage';
+import { clearLegacyAuthStorage } from '@/lib/authStorage';
 import type { RegisterRequest, UserInfo } from '@/types';
 
 interface AuthState {
   user: UserInfo | null;
-  accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  initialize: () => Promise<void>;
+  /** Whether the initial Cookie auth check has finished. */
+  initialized: boolean;
+
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
+  fetchProfile: () => Promise<void>;
+  /** App startup: validate session via Cookie. Does not redirect on 401. */
+  checkAuth: () => Promise<boolean>;
   updateUser: (user: Partial<UserInfo>) => void;
-  clearAuth: () => void;
+  reset: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  accessToken: null,
-  refreshToken: null,
   isAuthenticated: false,
   isLoading: true,
-
-  initialize: async () => {
-    try {
-      const accessToken = authStorage.getAccessToken();
-      const refreshToken = authStorage.getRefreshToken();
-      const cachedUser = authStorage.getUser();
-
-      if (!accessToken || !refreshToken) {
-        set({ isLoading: false });
-        return;
-      }
-
-      if (cachedUser) {
-        set({
-          user: cachedUser,
-          accessToken,
-          refreshToken,
-          isAuthenticated: true,
-        });
-      } else {
-        set({ accessToken, refreshToken });
-      }
-
-      const profile = await userService.getProfile();
-      authStorage.setUser(profile);
-      set({ user: profile, isAuthenticated: true, isLoading: false });
-    } catch {
-      get().clearAuth();
-    }
-  },
+  initialized: false,
 
   login: async (email, password) => {
-    const response = await authService.login({ email, password });
-    if (!response?.access_token || !response?.refresh_token) {
-      throw new Error('登录响应缺少 token，请检查后端返回格式');
-    }
-    authStorage.setTokens(response.access_token, response.refresh_token);
-    if (response.user) {
-      authStorage.setUser(response.user);
-    }
-    set({
-      user: response.user ?? null,
-      accessToken: response.access_token,
-      refreshToken: response.refresh_token,
-      isAuthenticated: true,
-    });
+    await authService.login({ email, password });
+    // Backend sets HttpOnly Cookie via Set-Cookie; then load profile
+    await get().fetchProfile();
   },
 
   register: async (data) => {
     await authService.register(data);
+    // Prefer auto-login when backend Set-Cookie on register; otherwise stay logged out
+    try {
+      await get().fetchProfile();
+    } catch {
+      set({
+        user: null,
+        isAuthenticated: false,
+        initialized: true,
+      });
+    }
   },
 
   logout: async () => {
     try {
       await authService.logout();
     } catch {
-      // ignore
+      console.warn('[Auth] 登出接口调用失败，仍然清除本地状态');
+    } finally {
+      get().reset();
+      window.location.href = '/login';
     }
-    get().clearAuth();
-    window.location.href = '/login';
+  },
+
+  fetchProfile: async () => {
+    const profile = await userService.getProfile();
+    set({
+      user: profile,
+      isAuthenticated: true,
+      initialized: true,
+      isLoading: false,
+    });
+  },
+
+  checkAuth: async () => {
+    clearLegacyAuthStorage();
+    set({ isLoading: true });
+    try {
+      // X-Auth-Check: axios interceptor must not redirect on 401 during boot
+      const profile = await userService.getProfileForAuthCheck();
+      set({
+        user: profile,
+        isAuthenticated: true,
+        isLoading: false,
+        initialized: true,
+      });
+      return true;
+    } catch {
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        initialized: true,
+      });
+      return false;
+    }
   },
 
   updateUser: (partial) => {
     const current = get().user;
     if (!current) return;
-    const updated = { ...current, ...partial };
-    authStorage.setUser(updated);
-    set({ user: updated });
+    set({ user: { ...current, ...partial } });
   },
 
-  clearAuth: () => {
-    authStorage.clear();
+  reset: () => {
+    clearLegacyAuthStorage();
     set({
       user: null,
-      accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
+      initialized: true,
     });
   },
 }));
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:unauthorized', () => {
+    useAuthStore.getState().reset();
+  });
+}

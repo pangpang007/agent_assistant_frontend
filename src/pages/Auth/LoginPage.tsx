@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { AuthLayout, AuthRouteGuard } from '@/components/auth';
 import { Button } from '@/components/ui/Button';
@@ -9,9 +9,15 @@ import { useAuthStore } from '@/stores/authStore';
 import { getApiErrorMessage, getApiErrorStatus, validateEmail } from '@/lib/validation';
 import './AuthPages.css';
 
+function safeRedirectPath(raw: string | null): string {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/';
+  return raw;
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const login = useAuthStore((s) => s.login);
   const { success, error: toastError } = useToast();
 
@@ -47,7 +53,7 @@ export default function LoginPage() {
     try {
       await login(email.trim(), password);
       success('登录成功');
-      navigate('/', { replace: true });
+      navigate(safeRedirectPath(searchParams.get('redirect')), { replace: true });
     } catch (err) {
       const status = getApiErrorStatus(err);
       if (status === 401) {

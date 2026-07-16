@@ -1,4 +1,4 @@
-import { memo, type ReactNode } from 'react';
+import { Fragment, memo, type ReactNode } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
@@ -16,6 +16,7 @@ export interface BaseNodeShellProps {
   id: string;
   data: WorkflowNodeData;
   selected?: boolean;
+  isConnectable?: boolean;
   icon: LucideIcon;
   color: string;
   summary: ReactNode;
@@ -66,6 +67,7 @@ function statusDotClass(status?: NodeExecutionStatus): string | undefined {
 export const BaseNodeShell = memo(function BaseNodeShell({
   data,
   selected,
+  isConnectable = true,
   icon: Icon,
   color,
   summary,
@@ -73,6 +75,8 @@ export const BaseNodeShell = memo(function BaseNodeShell({
 }: BaseNodeShellProps) {
   const status = data.executionStatus;
   const dotClass = statusDotClass(status);
+  const inputs = handles.inputs ?? [];
+  const outputs = handles.outputs ?? [];
 
   return (
     <div
@@ -86,12 +90,13 @@ export const BaseNodeShell = memo(function BaseNodeShell({
       </div>
       <div className="base-node__body">{summary}</div>
 
-      {handles.inputs?.map((input) => (
-        <div key={input.id}>
+      {inputs.map((input) => (
+        <Fragment key={input.id}>
           <Handle
             id={input.id}
             type="target"
             position={input.position ?? Position.Left}
+            isConnectable={isConnectable}
             className="custom-handle"
             style={{ top: input.top ?? '50%' }}
           />
@@ -103,15 +108,16 @@ export const BaseNodeShell = memo(function BaseNodeShell({
               {input.label}
             </span>
           ) : null}
-        </div>
+        </Fragment>
       ))}
 
-      {handles.outputs?.map((output) => (
-        <div key={output.id}>
+      {outputs.map((output) => (
+        <Fragment key={output.id}>
           <Handle
             id={output.id}
             type="source"
             position={output.position ?? Position.Right}
+            isConnectable={isConnectable}
             className="custom-handle"
             style={{ top: output.top ?? '50%' }}
           />
@@ -123,7 +129,7 @@ export const BaseNodeShell = memo(function BaseNodeShell({
               {output.label}
             </span>
           ) : null}
-        </div>
+        </Fragment>
       ))}
     </div>
   );

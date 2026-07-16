@@ -9,15 +9,16 @@ interface AuthRouteGuardProps {
 export function AuthRouteGuard({ children }: AuthRouteGuardProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const initialized = useAuthStore((s) => s.initialized);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    if (initialized && !isLoading && isAuthenticated) {
       navigate('/', { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [initialized, isAuthenticated, isLoading, navigate]);
 
-  if (isLoading || isAuthenticated) return null;
+  if (!initialized || isLoading || isAuthenticated) return null;
 
   return <>{children}</>;
 }

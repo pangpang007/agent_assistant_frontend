@@ -71,8 +71,14 @@ export default function RegisterPage() {
         account_type: registerType,
         ...(registerType === 'team' ? { team_name: teamName.trim() } : {}),
       });
-      success('注册成功，请登录');
-      navigate('/login', { replace: true, state: { registered: true } });
+      // Cookie auto-login when backend Set-Cookie on register; otherwise go to login
+      if (useAuthStore.getState().isAuthenticated) {
+        success('注册成功');
+        navigate('/', { replace: true });
+      } else {
+        success('注册成功，请登录');
+        navigate('/login', { replace: true, state: { registered: true } });
+      }
     } catch (err) {
       const status = getApiErrorStatus(err);
       if (status === 409) {

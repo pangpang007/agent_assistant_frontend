@@ -8,6 +8,7 @@ import {
   type NodeChange,
 } from '@xyflow/react';
 import { autoLayout } from '@/lib/workflow/autoLayout';
+import { resolveConnectionHandles, buildNodeHandles } from '@/lib/workflow/edgeHandles';
 import { createWorkflowNode } from '@/lib/workflow/nodeDefaults';
 import { validateWorkflow } from '@/lib/workflow/workflowValidation';
 import type {
@@ -218,11 +219,15 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
 
   updateNodeConfig: (nodeId, config) => {
     set({
-      nodes: get().nodes.map((n) =>
-        n.id === nodeId
-          ? { ...n, data: { ...n.data, config: { ...n.data.config, ...config } } }
-          : n,
-      ),
+      nodes: get().nodes.map((n) => {
+        if (n.id !== nodeId) return n;
+        const nextConfig = { ...n.data.config, ...config };
+        return {
+          ...n,
+          handles: buildNodeHandles(n.type as NodeType, nextConfig),
+          data: { ...n.data, config: nextConfig },
+        };
+      }),
       isDirty: true,
     });
   },
@@ -264,12 +269,16 @@ export const useWorkflowEditorStore = create<WorkflowEditorState>((set, get) => 
 
   onConnect: (connection) => {
     if (connection.source === connection.target) return;
+    const { sourceHandle, targetHandle } = resolveConnectionHandles(connection, get().nodes);
     set({
       edges: addEdge(
         {
           ...connection,
+          sourceHandle,
+          targetHandle,
           id: `edge_${connection.source}_${connection.target}_${Date.now()}`,
           type: 'smoothstep',
+          style: { stroke: 'var(--border-default)', strokeWidth: 2 },
         },
         get().edges,
       ),

@@ -23,8 +23,11 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: process.env.BACKEND_URL?.trim() || 'http://localhost:8000',
         changeOrigin: true,
+        secure: true,
+        // Keep Set-Cookie working through the Vite proxy (same-origin to the browser)
+        cookieDomainRewrite: '',
       },
     },
   },

@@ -16,7 +16,7 @@ export interface Template {
   name: string;
   description: string;
   category: TemplateCategory;
-  tags: string[];
+  tags?: string[];
   thumbnail_url: string | null;
   use_count: number;
   is_official: boolean;

@@ -5,6 +5,12 @@ import type { UpdatePasswordRequest, UpdateProfileRequest, UserInfo } from '@/ty
 export const userService = {
   getProfile: (): Promise<UserInfo> => http.get('/users/profile'),
 
+  /** Used by checkAuth — 401 must not trigger login redirect. */
+  getProfileForAuthCheck: (): Promise<UserInfo> =>
+    http.get('/users/profile', {
+      headers: { 'X-Auth-Check': 'true' },
+    }),
+
   updateProfile: (data: UpdateProfileRequest): Promise<UserInfo> =>
     http.patch('/users/profile', data),
 

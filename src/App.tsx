@@ -6,14 +6,14 @@ import { router } from '@/router';
 import './App.css';
 
 export function App() {
-  const initialize = useAuthStore((s) => s.initialize);
-  const isLoading = useAuthStore((s) => s.isLoading);
+  const checkAuth = useAuthStore((s) => s.checkAuth);
+  const initialized = useAuthStore((s) => s.initialized);
 
   useEffect(() => {
-    initialize();
-  }, [initialize]);
+    void checkAuth();
+  }, [checkAuth]);
 
-  if (isLoading) {
+  if (!initialized) {
     return (
       <div className="app-loading">
         <Spinner size="lg" />
